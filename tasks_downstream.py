@@ -178,3 +178,10 @@ def shell(c, db=None):
     if db:
         cmd += f" -d {db}"
     c.run(cmd)
+
+
+@task(develop)
+def scaffold(c, name):
+    """Create a scaffold"""
+    cmd = f"docker-compose run --rm odoo odoo scaffold {name} /opt/odoo/custom/src/private"
+    c.run(cmd)
