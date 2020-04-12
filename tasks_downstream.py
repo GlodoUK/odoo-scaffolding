@@ -74,7 +74,6 @@ def develop(c):
             c.run(f"pipx install {dep}")
     # Prepare environment
     c.run("git init")
-    c.run("ln -sf devel.yaml docker-compose.yml")
     _write_code_workspace_file()
     c.run("pre-commit install")
 

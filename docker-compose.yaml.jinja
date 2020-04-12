@@ -9,8 +9,8 @@ services:
       default:
       public:
     ports:
-      - "127.0.0.1:6899:6899"
-      - "127.0.0.1:${ODOO_MAJOR}069:8069"
+      - "6899:6899"
+      - "${ODOO_MAJOR}069:8069"
     environment:
       PORT: "6899 8069"
       TARGET: odoo
@@ -66,7 +66,6 @@ services:
       file: common.yaml
       service: db
     environment:
-      POSTGRES_DB: *dbname
       POSTGRES_PASSWORD: odoopassword
 
   smtp:
@@ -75,13 +74,13 @@ services:
       service: smtpfake
     networks: *public
     ports:
-      - "127.0.0.1:8025:8025"
+      - "8025:8025"
 
   wdb:
     image: kozea/wdb
     networks: *public
     ports:
-      - "127.0.0.1:1984:1984"
+      - "1984:1984"
     # HACK https://github.com/Kozea/wdb/issues/136
     stop_signal: KILL
 
