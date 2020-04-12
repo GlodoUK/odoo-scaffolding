@@ -53,7 +53,7 @@ project_author:
     Tell me who you are.
 
     If private modules do not include this author, pylint will warn you.
-  default: Tecnativa
+  default: Glo Networks
 
 project_name:
   type: str
@@ -72,7 +72,7 @@ project_license:
     find other propietary licenses we support in this scaffolding. Make a wise choice!
 
     So, what's your project's license?
-  default: BSL-1.0
+  default: null
   choices:
     No license: null
     Apache License 2.0: Apache-2.0
@@ -92,7 +92,7 @@ gitlab_url:
 
     💡 If you don't use Gitlab, leave this empty and ignore all other Gitlab questions.
 
-    Example: `https://gitlab.com/Tecnativa/your-doodba-project`.
+    Example: `https://gitlab.glo.systems.com/customer/your-doodba-project`.
 
 domain_prod:
   type: str
@@ -170,10 +170,10 @@ odoo_oci_image:
     project, specify here the path to the odoo image built with it. Leave it empty if
     you are not using a registry.
 
-    Example: docker.io/myteam/example-odoo
+  Example: gitlab.glo.systems:5005/customer/your-doodba-project
 
 odoo_listdb:
-  default: false
+  default: True
   type: bool
   help: >-
     Do you want to list databases publicly?
