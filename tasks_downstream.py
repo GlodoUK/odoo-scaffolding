@@ -160,3 +160,21 @@ def logs(c, tail=10):
     if tail:
         cmd += f" --tail {tail}"
     c.run(cmd)
+
+
+@task(develop)
+def psql(c, db=None):
+    """Get a psql"""
+    cmd = "docker-compose run --rm odoo psql"
+    if db:
+        cmd += f" {db}"
+    c.run(cmd)
+
+
+@task(develop)
+def shell(c, db=None):
+    """Get an Odoo shell"""
+    cmd = "docker-compose run --rm odoo odoo shell"
+    if db:
+        cmd += f" -d {db}"
+    c.run(cmd)
