@@ -59,22 +59,16 @@ pipx ensurepath
 Once you installed everything, you can now use Copier to copy this template:
 
 ```bash
-copier copy gh:Tecnativa/doodba-copier-template ~/path/to/your/subproject
+copier copy URLTOTHISREPO ~/path/to/your/subproject
 ```
 
 Copier will ask you a lot of questions. Answer them to properly generate the template.
 
 ## Getting updates for your subproject
 
-⚠️ If you come from
-[doodba-scaffolding](https://github.com/Tecnativa/doodba-scaffolding), please follow
-[the migration guide](docs/migrating-from-doodba-scaffolding.md).
-
-If you always used Copier with this project, getting last updates with Copier is simple:
-
 ```bash
 cd ~/path/to/your/downstream/scaffolding
-copier update
+SKIP=flake8 copier update -D
 ```
 
 Copier will ask you all questions again, but default values will be those you answered
