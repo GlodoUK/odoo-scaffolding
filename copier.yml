@@ -45,6 +45,18 @@ _migrations:
         - --search-root={{ _copier_conf.src_path }}
         - --collection=migrations
         - from-doodba-scaffolding-to-copier
+  - version: v1.5.2
+    after:
+      - - invoke
+        - --search-root={{ _copier_conf.src_path }}
+        - --collection=migrations
+        - remove-odoo-auto-folder
+  - version: v1.5.3
+    after:
+      - - invoke
+        - --search-root={{ _copier_conf.src_path }}
+        - --collection=migrations
+        - remove-odoo-auto-folder
 
 # Questions for the user
 project_author:
@@ -272,6 +284,8 @@ smtp_relay_port:
   help: >-
     Indicate the port to connect in the SMTP server you just defined.
 
+    ⚠️ NEVER use port 465 👉 https://github.com/tomav/docker-mailserver/issues/1428
+
 smtp_relay_user:
   type: str
   help: >-
@@ -357,12 +371,14 @@ backup_tz:
     how to obtain a valid value for this variable.
 
 backup_aws_access_key_id:
+  secret: true
   type: str
   default: null
   help: >-
     If you're using AWS S3 to store backups, provide here your access key ID.
 
 backup_aws_secret_access_key:
+  secret: true
   type: str
   default: null
   help: >-

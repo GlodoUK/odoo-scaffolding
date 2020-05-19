@@ -113,7 +113,7 @@ endless. Inspect its code to understand the environment variables that can alter
 behavior. Run it like this:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Tecnativa/doodba-copier-template/master/docs/scaffolding2copier.sh | bash
+bash -c 'source <(curl -sSL https://raw.githubusercontent.com/Tecnativa/doodba-copier-template/master/docs/scaffolding2copier.sh)'
 ```
 
 If anything goes wrong, reset and use the manual way:
@@ -149,6 +149,10 @@ git commit -am '[DCK] Upgrade from doodba-scaffolding to doodba-copier-template'
 pre-commit run -a
 git commit -am '[IMP] 1st pre-commit execution'
 ```
+
+⚠️ Read
+[this warning about XML whitespace](faq.md#why-xml-is-broken-after-running-pre-commit)
+⚠️
 
 Your transition is finished! 🎉
 

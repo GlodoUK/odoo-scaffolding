@@ -18,7 +18,11 @@ This project lets you maintain [Odoo][] deployments based on [Doodba][] using
 <summary>Table of contents</summary>
 
 - [Installation and Usage](#installation-and-usage)
-- [Getting Updates](#getting-updates)
+  - [Install the dependencies](#install-the-dependencies)
+  - [Use the template to generate your subproject](#use-the-template-to-generate-your-subproject)
+  - [Getting updates for your subproject](#getting-updates-for-your-subproject)
+- [Using your subproject to build an Odoo deployment](#using-your-subproject-to-build-an-odoo-deployment)
+- [Getting help](#getting-help)
 - [Contributing](#contributing)
 - [Credits](#credits)
 
@@ -28,10 +32,12 @@ This project lets you maintain [Odoo][] deployments based on [Doodba][] using
 
 # Installation and Usage
 
+## Install the dependencies
+
 This project itself is just the template, but you need to install these tools to use it:
 
-- [copier][] v3.0.0 or newer
-- [git](https://git-scm.com/)
+- [copier][] v3.0.6 or newer
+- [git](https://git-scm.com/) 2.24 or newer
 - [invoke](https://www.pyinvoke.org/) installed in Python 3.6+ (and the binary must be
   called `invoke` — beware if your distro installs it as `invoke3` or similar).
 - [pre-commit](https://pre-commit.com/)
@@ -48,15 +54,17 @@ pipx install pre-commit
 pipx ensurepath
 ```
 
+## Use the template to generate your subproject
+
 Once you installed everything, you can now use Copier to copy this template:
 
 ```bash
-copier copy gh:Tecnativa/doodba-copier-template ~/path/to/your/downstream/scaffolding
+copier copy gh:Tecnativa/doodba-copier-template ~/path/to/your/subproject
 ```
 
 Copier will ask you a lot of questions. Answer them to properly generate the template.
 
-# Getting Updates
+## Getting updates for your subproject
 
 ⚠️ If you come from
 [doodba-scaffolding](https://github.com/Tecnativa/doodba-scaffolding), please follow
@@ -75,6 +83,16 @@ needed... or you can use `copier --force update` instead to avoid answering agai
 things.
 
 Basically, read Copier docs and `copier --help-all` to know how to use it.
+
+# Using your subproject to build an Odoo deployment
+
+This is a big topic [documented separately](docs/daily-usage.md).
+
+# Getting help
+
+If your question is not answered in [our FAQ](docs/faq.md) or
+[Doodba's FAQ](https://github.com/Tecnativa/doodba#faq),
+[open an issue](CONTRIBUTING.md#issues)
 
 # Contributing
 
