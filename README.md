@@ -51,7 +51,7 @@ python3 -m pip install --user pipx
 pipx install copier
 pipx install invoke
 pipx install pre-commit
-pipx ensurepath
+pipx ensurepath --force
 ```
 
 ## Use the template to generate your subproject

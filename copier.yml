@@ -27,6 +27,7 @@ _exclude:
   - /tasks_downstream.py
   - /tests
   - /vendor
+  - /**/.empty
 
 _skip_if_exists:
   - odoo/custom/dependencies/*.txt
@@ -250,7 +251,7 @@ postgres_dbname:
 
 postgres_password:
   secret: true
-  default: example-db-password
+  default: odoo
   type: str
   help: >-
     What will be your postgres user password?
