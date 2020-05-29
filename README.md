@@ -78,6 +78,10 @@ things.
 
 Basically, read Copier docs and `copier --help-all` to know how to use it.
 
+# Learn More
+
+See the project wiki.
+
 # Credits
 
 This project is a fork of the upstream copier-template maintained by [Tecnativa](https://www.tecnativa.com/r/H3p)
