@@ -78,28 +78,13 @@ things.
 
 Basically, read Copier docs and `copier --help-all` to know how to use it.
 
-# Using your subproject to build an Odoo deployment
+# Learn More
 
-This is a big topic [documented separately](docs/daily-usage.md).
-
-# Getting help
-
-If your question is not answered in [our FAQ](docs/faq.md) or
-[Doodba's FAQ](https://github.com/Tecnativa/doodba#faq),
-[open an issue](CONTRIBUTING.md#issues)
-
-# Contributing
-
-See the [contribution guidelines](CONTRIBUTING.md).
+See the project wiki.
 
 # Credits
 
-This project is maintained by:
-
-[![Tecnativa](https://www.tecnativa.com/r/H3p)](https://www.tecnativa.com/r/rIN)
-
-Also, special thanks to
-[our dear community contributors](https://github.com/Tecnativa/doodba-copier-template/graphs/contributors).
+This project is a fork of the upstream copier-template maintained by [Tecnativa](https://www.tecnativa.com/r/H3p)
 
 [copier]: https://github.com/pykong/copier
 [doodba]: https://github.com/Tecnativa/doodba
