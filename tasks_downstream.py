@@ -186,24 +186,38 @@ def logs(c, tail=10):
 
 @task(develop)
 def psql(c, db=None):
-    """Get a psql"""
-    cmd = "docker-compose run --rm odoo psql"
+    """Get an interactive psql shell"""
+    envre = re.compile(r'''^([^\s=]+)=(?:[\s"']*)(.+?)(?:[\s"']*)$''')
+    result = {}
+    with open('.env') as ins:
+        for line in ins:
+            match = envre.match(line)
+            if match is not None:
+                result[match.group(1)] = match.group(2)
+
+    db_user = result.get("DB_USER", "odoo")
+
+    cmd = f"docker-compose exec db psql -U {db_user}"
+
     if db:
         cmd += f" {db}"
-    c.run(cmd)
+    else:
+        cmd += " postgres"
+    c.run(cmd, pty=True)
 
 
 @task(develop)
 def shell(c, db=None):
     """Get an Odoo shell"""
-    cmd = "docker-compose run --rm odoo odoo shell"
+    cmd = "docker-compose run --rm odoo click-odoo"
     if db:
         cmd += f" -d {db}"
-    c.run(cmd)
+    c.run(cmd, pty=True)
 
 
 @task(develop)
 def scaffold(c, name):
-    """Create a scaffold"""
-    cmd = f"docker-compose run --rm odoo odoo scaffold {name} /opt/odoo/custom/src/private"
+    """Create a scaffold using Odoo's built in scaffolding"""
+    custom_path = PROJECT_ROOT / "odoo" / "custom"
+    cmd = f"docker-compose run --volume='{custom_path}:/opt/odoo/custom:rw,z' --rm odoo odoo scaffold {name} /opt/odoo/custom/src/private"
     c.run(cmd)
