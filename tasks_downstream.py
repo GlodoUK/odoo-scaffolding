@@ -8,6 +8,7 @@ import json
 import os
 from glob import glob, iglob
 from pathlib import Path
+import re
 
 from invoke import task
 
