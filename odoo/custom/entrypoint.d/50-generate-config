@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# Always regenerates configuration on startup
+
+log INFO Forcing config generation
+config-generate

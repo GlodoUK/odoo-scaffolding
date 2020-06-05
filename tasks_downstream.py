@@ -22,6 +22,21 @@ DEVELOP_DEPENDENCIES = (
 UID_ENV = {"GID": str(os.getgid()), "UID": str(os.getuid()), "UMASK": "27"}
 
 
+def dotenv_dict():
+    envre = re.compile(r"""^([^\s=]+)=(?:[\s"']*)(.+?)(?:[\s"']*)$""")
+    result = {}
+
+    if not os.path.isfile(".env"):
+        return result
+
+    with open(".env") as ins:
+        for line in ins:
+            match = envre.match(line)
+            if match is not None:
+                result[match.group(1)] = match.group(2)
+    return result
+
+
 @task
 def write_code_workspace_file(c, cw_path=None):
     """Generate code-workspace file definition.
@@ -188,16 +203,7 @@ def logs(c, tail=10):
 @task(develop)
 def psql(c, db=None):
     """Get an interactive psql shell"""
-    envre = re.compile(r'''^([^\s=]+)=(?:[\s"']*)(.+?)(?:[\s"']*)$''')
-    result = {}
-    with open('.env') as ins:
-        for line in ins:
-            match = envre.match(line)
-            if match is not None:
-                result[match.group(1)] = match.group(2)
-
-    db_user = result.get("DB_USER", "odoo")
-
+    db_user = dotenv_dict().get("DB_USER", "odoo")
     cmd = f"docker-compose exec db psql -U {db_user}"
 
     if db:
@@ -208,11 +214,21 @@ def psql(c, db=None):
 
 
 @task(develop)
-def shell(c, db=None):
-    """Get an Odoo shell"""
-    cmd = "docker-compose run --rm odoo click-odoo"
+def shell(c, db=None, native=True):
+    """
+    Get an Odoo shell. By default it will use the native odoo shell, unless
+    specified, or ODOO_MAJOR <= 10.
+    """
+    shell_cmd = "shell"
+    odoo_version = int(dotenv_dict().get("ODOO_MAJOR", 0))
+
+    if not native or odoo_version <= 10:
+        shell_cmd = "click-odoo"
+
+    cmd = f"docker-compose run --rm odoo {shell_cmd}"
     if db:
         cmd += f" -d {db}"
+
     c.run(cmd, pty=True)
 
 
