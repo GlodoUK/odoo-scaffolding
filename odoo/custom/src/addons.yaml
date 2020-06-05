@@ -1,2 +1,3 @@
 # See https://github.com/Tecnativa/doodba#optodoocustomsrcaddonsyaml
 #enterprise: ['*']
+#oca_web: ['web_refresher']
