@@ -129,11 +129,13 @@ def git_aggregate(c):
 
 
 @task(develop)
-def img_build(c, pull=True):
+def img_build(c, pull=True, no_cache=False):
     """Build docker images."""
     cmd = "docker-compose build"
     if pull:
         cmd += " --pull"
+    if no_cache:
+        cmd += " --no-cache"
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd, env=UID_ENV)
 
