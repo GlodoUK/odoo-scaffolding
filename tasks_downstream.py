@@ -240,3 +240,12 @@ def scaffold(c, name):
     custom_path = PROJECT_ROOT / "odoo" / "custom"
     cmd = f"docker-compose run --volume='{custom_path}:/opt/odoo/custom:rw,z' --rm odoo odoo scaffold {name} /opt/odoo/custom/src/private"
     c.run(cmd)
+
+
+@task(develop)
+def down(c, volumes=False):
+    """Shutdown and remove docker-compose components"""
+    cmd = "docker-compose down"
+    if volumes:
+        cmd += " --volumes"
+    c.run(cmd)
