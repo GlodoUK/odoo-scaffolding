@@ -238,7 +238,7 @@ def shell(c, db=None, native=True):
 def scaffold(c, name):
     """Create a scaffold using Odoo's built in scaffolding"""
     custom_path = PROJECT_ROOT / "odoo" / "custom"
-    cmd = f"docker-compose run --volume='{custom_path}:/opt/odoo/custom:rw,z' --rm odoo odoo scaffold {name} /opt/odoo/custom/src/private"
+    cmd = f"docker-compose run --volume '{custom_path}:/opt/odoo/custom:rw,z' --rm odoo odoo scaffold {name} /opt/odoo/custom/src/private"
     c.run(cmd)
 
 
