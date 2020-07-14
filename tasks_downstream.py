@@ -171,16 +171,20 @@ def start(c, detach=True, ptvsd=False):
     develop,
     help={"purge": "Remove all related containers, networks images and volumes"},
 )
-def stop(c, purge=False):
-    """Stop and (optionally) purge environment."""
-    cmd = "docker-compose"
+def down(c, purge=False):
+    """Take down and (optionally) purge environment."""
+    cmd = "docker-compose down"
     if purge:
-        cmd += " down --remove-orphans --rmi local --volumes"
-    else:
-        cmd += " stop"
+        cmd += " --remove-orphans --rmi local --volumes"
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd)
 
+@task(develop)
+def stop(c):
+    """Stop the environment."""
+    cmd = "docker-compose stop"
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(cmd)
 
 @task(develop)
 def restart(c, quick=True):
