@@ -21,7 +21,7 @@
 #  remotes:
 #    # You must add a project access token, this repository is not publicly available.
 #    # Please create a specific access token for this project.
-#    odoo: https://gitlab.glo.systems/odoo/enterprise-edition.git
+#    odoo: git+ssh://github.com/glodouk/enterprise.git
 #  target: odoo $ODOO_VERSION
 #  merges:
 #    - odoo $ODOO_VERSION
