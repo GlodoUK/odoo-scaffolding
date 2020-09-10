@@ -12,7 +12,7 @@
 
 source .env
 copier $CUSTOM_COPIER_FLAGS \
-  -r "${TEMPLATE_VERSION-v1.5.4}" \
+  -r "${TEMPLATE_VERSION-v1.8.1}" \
   -d project_name="${PROJECT_NAME-$(basename $PWD)}" \
   -d project_license="${LICENSE-BSL-1.0}" \
   -d gitlab_url="${GITLAB_PREFIX-https://gitlab.com/example}/${PROJECT_NAME-$(basename $PWD)}" \
@@ -33,7 +33,7 @@ copier $CUSTOM_COPIER_FLAGS \
   -d smtp_relay_user="$SMTP_REAL_RELAY_USER" \
   -d smtp_canonical_default="$SMTP_REAL_NON_CANONICAL_DEFAULT" \
   -d smtp_canonical_domains="[$SMTP_REAL_CANONICAL_DOMAINS]" \
-  -d backup_dst="s3://s3.amazonaws.com/$BACKUP_S3_BUCKET" \
+  -d backup_dst="boto3+s3://$BACKUP_S3_BUCKET" \
   -d backup_email_from="$BACKUP_EMAIL_FROM" \
   -d backup_email_to="$BACKUP_EMAIL_TO" \
   -d backup_deletion=false \

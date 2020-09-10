@@ -43,15 +43,29 @@ def test_no_vscode_in_private(tmp_path: Path):
         assert not git("status", "--porcelain")
 
 
-def test_mqt_configs_synced():
+def test_mqt_configs_synced(
+    tmp_path: Path, cloned_template: Path, supported_odoo_version: float
+):
     """Make sure configs from MQT are in sync."""
-    template = Path("tests", "default_settings", "v13.0")
+    copy(
+        str(cloned_template),
+        str(tmp_path),
+        vcs_ref="test",
+        force=True,
+        data={"odoo_version": supported_odoo_version},
+    )
     mqt = Path("vendor", "maintainer-quality-tools", "sample_files", "pre-commit-13.0")
     good_diffs = Path("tests", "samples", "mqt-diffs")
     for conf in (".pylintrc", ".pylintrc-mandatory"):
         good = (good_diffs / f"{conf}.diff").read_text()
-        tested = diff(template / conf, mqt / conf, retcode=1)
+        tested = diff(tmp_path / conf, mqt / conf, retcode=1)
         assert good == tested
+
+
+def test_pre_commit():
+    """Make sure linters are happy."""
+    with local.cwd(Path(__file__).parent.parent):
+        invoke("lint")
 
 
 def test_gitlab_badges(tmp_path: Path):
@@ -94,7 +108,7 @@ def test_alt_domains_rules(tmp_path: Path, cloned_template: Path):
         pre_commit("run", "-a", retcode=1)
     expected = Path("tests", "samples", "alt-domains", "prod.yaml").read_text()
     generated = (tmp_path / "prod.yaml").read_text()
-    generated_scalar = yaml.load(generated)
+    generated_scalar = yaml.safe_load(generated)
     # Any of these characters in a traefik label is an error almost for sure
     error_chars = ("\n", "'", '"')
     for service in generated_scalar["services"].values():
@@ -189,7 +203,9 @@ def test_pre_commit_config(
         force=True,
         data={"odoo_version": supported_odoo_version},
     )
-    pre_commit_config = yaml.load((tmp_path / ".pre-commit-config.yaml").read_text())
+    pre_commit_config = yaml.safe_load(
+        (tmp_path / ".pre-commit-config.yaml").read_text()
+    )
     is_py3 = supported_odoo_version >= 11
     found = 0
     should_find = 1
@@ -220,5 +236,5 @@ def test_no_python_write_bytecode_in_devel(
         force=True,
         data={"odoo_version": supported_odoo_version},
     )
-    devel = yaml.load((tmp_path / "devel.yaml").read_text())
+    devel = yaml.safe_load((tmp_path / "devel.yaml").read_text())
     assert devel["services"]["odoo"]["environment"]["PYTHONDONTWRITEBYTECODE"] == 1

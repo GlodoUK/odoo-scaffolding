@@ -18,7 +18,11 @@ Maybe not so frequent, but interesting anyway. 🤷
 - [How to get proper assets when printing reports?](#how-to-get-proper-assets-when-printing-reports)
 - [How to have good QA and test in my CI with Doodba?](#how-to-have-good-qa-and-test-in-my-ci-with-doodba)
 - [This project is too opinionated, but can I question any of those opinions?](#this-project-is-too-opinionated-but-can-i-question-any-of-those-opinions)
+- [Where are screencasts and screenshots of my failed E2E tests?](#where-are-screencasts-and-screenshots-of-my-failed-e2e-tests)
+  - [How to get screencasts and screenshots of failed E2E tests in Odoo 12.0?](#how-to-get-screencasts-and-screenshots-of-failed-e2e-tests-in-odoo-120)
+- [Why pre-commit fails each time I copy or update the template?](#why-pre-commit-fails-each-time-i-copy-or-update-the-template)
 - [Why XML is broken after running pre-commit?](#why-xml-is-broken-after-running-pre-commit)
+- [Why is Odoo saying that its database is not initialized?](#why-is-odoo-saying-that-its-database-is-not-initialized)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 <!-- prettier-ignore-end -->
@@ -303,6 +307,70 @@ Go there to get more instructions.
 
 Of course. There's no guarantee that we will like it, but please do it. 😉
 
+## Where are screencasts and screenshots of my failed E2E tests?
+
+Starting with Odoo (and Doodba) 13.0, when you're in [the devel
+environment][development] and run some E2E test (tours, JS tests...) that fails, Odoo
+will output screenshots and screencasts automatically. These are very useful for
+debugging.
+
+You can find them in the `./odoo/auto/test-artifacts` directory in your development
+host. No need to sniff around inside the container to find them.
+
+### How to get screencasts and screenshots of failed E2E tests in Odoo 12.0?
+
+In Odoo (and Doodba) 12.0, the screencasts and screenshots feature is also supported,
+but it is less intuitive: just apply this patch to your `devel.yaml` file:
+
+```diff
+diff --git a/devel.yaml b/devel.yaml
+index 2026e7c..d4e5a68 100644
+--- a/devel.yaml
++++ b/devel.yaml
+@@ -60,6 +60,7 @@ services:
+       - --limit-time-real=9999999
+       - --workers=0
+       - --dev=reload,qweb,werkzeug,xml
++      - --logfile=/opt/auto/test-artifacts/odoo.log
+
+   db:
+     extends:
+```
+
+You'll find Odoo logs in `./odoo/auto/test-artifacts/odoo.log` file, and screencasts and
+screenshots will be around with some weird names. As a side effect, your container will
+output no logs to the console.
+
+Since this is an awkward side effect of that setting, we're not shipping that by
+default.
+
+## Why pre-commit fails each time I copy or update the template?
+
+We format here YAML files using [Prettier](https://prettier.io/) inside
+[pre-commit](https://pre-commit.com/).
+
+However, when the template is generated, you have a lot of chances that your YAML files
+are badly formatted. For instance, depending on the length of you alternate domains,
+Traefik rules might be longer or shorter, triggering a different reformat on each
+project, or on each update. That is expected good behavior.
+
+Also, the way Copier formats your `.copier-answers.yml` file almost always violates
+Prettier's rules.
+
+So, if you find out that after generating the project for the 1st time, or after
+updating it, it fails pre-commit validations, don't worry about that. Just let
+pre-commit reformat your files in next commit, and commit again.
+
+Quick dirty recipe:
+
+```bash
+copier --force update
+git add .
+pre-commit run
+git add .
+git commit -m 'Update from template'
+```
+
 ## Why XML is broken after running pre-commit?
 
 Doodba Copier Template enables [Prettier](https://prettier.io/) as a
@@ -360,3 +428,39 @@ ________________
 
 You can also replace our default for `xmlWhitespaceSensitivity: "strict"` inside your
 `.prettierrc.yml` file.
+
+## Why is Odoo saying that its database is not initialized?
+
+This is a common problem within the development workflow. From Odoo 12.0, the database
+needs to be initialized by hand. You can know that you're facing this problem if you see
+in Odoo's logs something like this:
+
+```log
+2020-06-09 10:24:26,715 1 ERROR ? odoo.modules.loading: Database devel not initialized, you can force it with `-i base`
+2020-06-09 10:25:26,781 1 ERROR devel odoo.sql_db: bad query: SELECT latest_version FROM ir_module_module WHERE name='base'
+ERROR: relation "ir_module_module" does not exist
+LINE 1: SELECT latest_version FROM ir_module_module WHERE name='base...
+                                   ^
+```
+
+You can do as **the log is clearly telling you to do** (side note: READ THE LOGS! 😀):
+
+```bash
+docker-compose run --rm odoo --stop-after-init -i base
+invoke restart
+```
+
+Or you can use the `resetdb` task to reset your `devel` database:
+
+```bash
+invoke resetdb
+```
+
+If you use this method, Odoo will have 2 databases created. You should use the one
+called `devel`; the other one is just a cache, so the next time you run this command
+it's faster.
+
+This is just a helper over these tools, which you might want to use directly instead:
+
+- [`click-odoo-dropdb`](https://github.com/acsone/click-odoo-contrib#click-odoo-dropdb-stable)
+- [`click-odoo-initdb`](https://github.com/acsone/click-odoo-contrib#click-odoo-initdb-stable)
