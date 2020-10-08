@@ -275,3 +275,19 @@ def scaffold(c, name):
         f" --rm odoo odoo scaffold {name} /opt/odoo/custom/src/private"
     )
     c.run(cmd)
+
+    
+@task(develop)
+def upgrade(c, db=None, include_core=False):
+    """
+    Upgrade all Odoo addons
+    Ignores core addons by default.
+    User --include-core to include them
+    """
+    cmd = "docker-compose exec odoo click-odoo-update"
+    if not include_core:
+        cmd += " --ignore-core-addons"
+    if db:
+        cmd += f" -d {db}"
+
+    c.run(cmd, pty=True)
