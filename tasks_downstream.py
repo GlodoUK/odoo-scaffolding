@@ -291,3 +291,14 @@ def upgrade(c, db=None, include_core=False):
         cmd += f" -d {db}"
 
     c.run(cmd, pty=True)
+
+
+@task(develop)
+def tests(c, db, install):
+    """Run the unit tests for a module"""
+    cmd = (
+        f"docker-compose run"
+        f" --rm odoo odoo --test-enable -d {db} -i {install}"
+        f" --stop-after-init --no-http"
+    )
+    c.run(cmd, pty=True)
