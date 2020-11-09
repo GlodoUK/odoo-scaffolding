@@ -186,6 +186,15 @@ def stop(c):
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd)
 
+@task(develop)
+def stopstart(c, detach=True, ptvsd=False):
+    """Stop the environment."""
+    cmd = "docker-compose stop && docker-compose up"
+    if detach:
+        cmd += " --detach"
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(cmd, env=dict(UID_ENV, DOODBA_PTVSD_ENABLE=str(int(ptvsd))))
+
 @task(
     develop,
     help={
