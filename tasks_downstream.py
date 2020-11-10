@@ -11,25 +11,18 @@ from pathlib import Path
 import re
 
 from invoke import task
+from invoke.util import yaml
 
 PROJECT_ROOT = Path(__file__).parent.absolute()
 SRC_PATH = PROJECT_ROOT / "odoo" / "custom" / "src"
 UID_ENV = {"GID": str(os.getgid()), "UID": str(os.getuid()), "UMASK": "27"}
-
-
-def dotenv_dict():
-    envre = re.compile(r"""^([^\s=]+)=(?:[\s"']*)(.+?)(?:[\s"']*)$""")
-    result = {}
-
-    if not os.path.isfile(".env"):
-        return result
-
-    with open(".env") as ins:
-        for line in ins:
-            match = envre.match(line)
-            if match is not None:
-                result[match.group(1)] = match.group(2)
-    return result
+COMMON_YAML = yaml.safe_load((PROJECT_ROOT / "common.yaml").read_text())
+ODOO_VERSION = float(
+    COMMON_YAML["services"]["odoo"][
+        "build"
+    ]["args"]["ODOO_VERSION"]
+)
+DB_USER = COMMON_YAML["services"]["odoo"]["environment"]["PGUSER"]
 
 
 @task
@@ -165,12 +158,14 @@ def down(c, purge=False):
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd)
 
+
 @task(develop)
 def stop(c):
     """Stop the environment."""
     cmd = "docker-compose stop"
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd)
+
 
 @task(develop)
 def stopstart(c, detach=True, ptvsd=False):
@@ -180,6 +175,7 @@ def stopstart(c, detach=True, ptvsd=False):
         cmd += " --detach"
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd, env=dict(UID_ENV, DOODBA_PTVSD_ENABLE=str(int(ptvsd))))
+
 
 @task(
     develop,
@@ -234,8 +230,7 @@ def logs(c, tail=10):
 @task(develop)
 def psql(c, db=None):
     """Get an interactive psql shell"""
-    db_user = dotenv_dict().get("DB_USER", "odoo")
-    cmd = f"docker-compose exec db psql -U {db_user}"
+    cmd = f"docker-compose exec db psql -U {DB_USER}"
 
     if db:
         cmd += f" {db}"
@@ -251,9 +246,8 @@ def shell(c, db=None, native=True):
     specified, or ODOO_MAJOR <= 10.
     """
     shell_cmd = "shell"
-    odoo_version = int(dotenv_dict().get("ODOO_MAJOR", 0))
 
-    if not native or odoo_version <= 10:
+    if not native or ODOO_VERSION <= 10.0:
         shell_cmd = "click-odoo"
 
     cmd = f"docker-compose run --rm odoo {shell_cmd}"
