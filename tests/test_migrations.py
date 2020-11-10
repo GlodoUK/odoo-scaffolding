@@ -194,34 +194,3 @@ def test_v2_0_0_migration(
         git("commit", "-am", "updated from template in v2.0.0")
         # Assert .env removal
         assert not Path(".env").exists()
-        # Assert domain structure migration
-        answers = yaml.safe_load(Path(".custom.copier-answers.yaml").read_text())
-        assert "domain_prod" not in answers
-        assert "domain_prod_alternatives" not in answers
-        assert "domain_test" not in answers
-        expected_domains_prod = []
-        if data.get("domain_prod"):
-            expected_domains_prod.append(
-                {
-                    "hosts": [domain_prod],
-                    "cert_resolver": "letsencrypt",
-                }
-            )
-        if data.get("domain_prod_alternatives") and expected_domains_prod:
-            expected_domains_prod.append(
-                {
-                    "hosts": domain_prod_alternatives,
-                    "cert_resolver": "letsencrypt",
-                    "redirect_to": domain_prod,
-                }
-            )
-        assert answers["domains_prod"] == expected_domains_prod
-        expected_domains_test = []
-        if data.get("domain_test"):
-            expected_domains_test.append(
-                {
-                    "hosts": [domain_test],
-                    "cert_resolver": "letsencrypt",
-                }
-            )
-        assert answers["domains_test"] == expected_domains_test

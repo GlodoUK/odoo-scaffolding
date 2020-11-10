@@ -16,53 +16,6 @@ WHITESPACE_PREFIXED_LICENSES = (
 )
 
 
-def test_doodba_main_domain_label(cloned_template: Path, tmp_path: Path):
-    """Make sure the doodba.domain.main label is correct."""
-    copy(
-        str(cloned_template),
-        str(tmp_path),
-        vcs_ref="test",
-        force=True,
-        data={
-            "domains_prod": [
-                {
-                    "hosts": ["not0.prod.example.com", "not1.prod.example.com"],
-                    "redirect_to": "yes.prod.example.com",
-                },
-                {
-                    "hosts": ["not3.prod.example.com", "not4.prod.example.com"],
-                    "path_prefixes": ["/insecure/"],
-                    "entrypoints": ["web-insecure"],
-                },
-                {"hosts": ["yes.prod.example.com", "not5.prod.example.com"]},
-            ],
-            "domains_test": [
-                {
-                    "hosts": ["not0.test.example.com", "not1.test.example.com"],
-                    "redirect_to": "yes.test.example.com",
-                },
-                {
-                    "hosts": ["not3.test.example.com", "not4.test.example.com"],
-                    "path_prefixes": ["/insecure/"],
-                    "entrypoints": ["web-insecure"],
-                },
-                {"hosts": ["yes.test.example.com", "not5.test.example.com"]},
-            ],
-        },
-    )
-    with local.cwd(tmp_path):
-        prod_config = yaml.load(docker_compose("-f", "prod.yaml", "config"))
-        test_config = yaml.load(docker_compose("-f", "test.yaml", "config"))
-        assert (
-            prod_config["services"]["odoo"]["labels"]["doodba.domain.main"]
-            == "yes.prod.example.com"
-        )
-        assert (
-            test_config["services"]["odoo"]["labels"]["doodba.domain.main"]
-            == "yes.test.example.com"
-        )
-
-
 @pytest.mark.parametrize("project_license", WHITESPACE_PREFIXED_LICENSES)
 def test_license_whitespace_prefix(
     tmp_path: Path, cloned_template: Path, project_license
@@ -113,82 +66,6 @@ def test_pre_commit():
     """Make sure linters are happy."""
     with local.cwd(Path(__file__).parent.parent):
         invoke("lint")
-
-
-def test_gitlab_badges(cloned_template: Path, tmp_path: Path):
-    """Gitlab badges are properly formatted in README."""
-    copy(
-        str(cloned_template),
-        str(tmp_path),
-        vcs_ref="HEAD",
-        force=True,
-        data={"gitlab_url": "https://gitlab.example.com/Tecnativa/my-badged-odoo"},
-    )
-    expected_badges = dedent(
-        """
-        [![pipeline status](https://gitlab.example.com/Tecnativa/my-badged-odoo/badges/13.0/pipeline.svg)](https://gitlab.example.com/Tecnativa/my-badged-odoo/commits/13.0)
-        [![coverage report](https://gitlab.example.com/Tecnativa/my-badged-odoo/badges/13.0/coverage.svg)](https://gitlab.example.com/Tecnativa/my-badged-odoo/commits/13.0)
-        """
-    )
-    assert expected_badges.strip() in (tmp_path / "README.md").read_text()
-
-
-def test_cidr_whitelist_rules(
-    tmp_path: Path, cloned_template: Path, supported_odoo_version: float
-):
-    """Make sure CIDR whitelist redirections are good for Traefik."""
-    copy(
-        str(cloned_template),
-        str(tmp_path),
-        vcs_ref="HEAD",
-        force=True,
-        data={
-            "odoo_version": supported_odoo_version,
-            "project_name": "test-cidr-whitelist",
-            "cidr_whitelist": ["123.123.123.123/24", "456.456.456.456"],
-            "domains_prod": [{"hosts": ["www.example.com"]}],
-            "domains_test": [{"hosts": ["demo.example.com"]}],
-        },
-    )
-    # TODO Use Traefik to test this, instead of asserting labels
-    key = ("test-cidr-whitelist-%.1f" % supported_odoo_version).replace(".", "-")
-    with local.cwd(tmp_path):
-        git("add", "prod.yaml", "test.yaml")
-        pre_commit("run", "-a", retcode=None)
-        prod = yaml.safe_load(docker_compose("-f", "prod.yaml", "config"))
-        test = yaml.safe_load(docker_compose("-f", "test.yaml", "config"))
-    # Assert prod.yaml
-    assert (
-        prod["services"]["odoo"]["labels"][
-            f"traefik.http.middlewares.{key}-prod-whitelist.IPWhiteList.sourceRange"
-        ]
-        == "123.123.123.123/24, 456.456.456.456"
-    )
-    assert f"{key}-prod-whitelist" in prod["services"]["odoo"]["labels"][
-        f"traefik.http.routers.{key}-prod-main-0.middlewares"
-    ].split(", ")
-    assert f"{key}-prod-whitelist" in prod["services"]["odoo"]["labels"][
-        f"traefik.http.routers.{key}-prod-longpolling-0.middlewares"
-    ].split(", ")
-    assert f"{key}-prod-whitelist" in prod["services"]["odoo"]["labels"][
-        f"traefik.http.routers.{key}-prod-forbiddenCrawlers-0.middlewares"
-    ].split(", ")
-    # Assert test.yaml
-    assert (
-        test["services"]["smtp"]["labels"][
-            f"traefik.http.middlewares.{key}-test-whitelist.IPWhiteList.sourceRange"
-        ]
-        == "123.123.123.123/24, 456.456.456.456"
-    )
-    assert f"{key}-test-whitelist" in test["services"]["odoo"]["labels"][
-        f"traefik.http.routers.{key}-test-forbiddenCrawlers-0.middlewares"
-    ].split(", ")
-    assert f"{key}-test-whitelist" in test["services"]["odoo"]["labels"][
-        f"traefik.http.routers.{key}-test-longpolling-0.middlewares"
-    ].split(", ")
-    assert f"{key}-test-whitelist" in test["services"]["smtp"]["labels"][
-        f"traefik.http.routers.{key}-test-mailhog-0.middlewares"
-    ].split(", ")
 
 
 def test_code_workspace_file(tmp_path: Path, cloned_template: Path):

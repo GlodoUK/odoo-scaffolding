@@ -77,7 +77,7 @@ project_author:
     Tell me who you are.
 
     If private modules do not include this author, pylint will warn you.
-  default: Glo Networks
+  default: Glodo
 
 project_name:
   type: str
@@ -106,114 +106,6 @@ project_license:
     MIT license: MIT
     Odoo Enterprise Edition License v1.0: OEEL-1.0
     Odoo Proprietary License v1.0: OPL-1.0
-
-gitlab_url:
-  type: str
-  help: >-
-    If you host this project in Gitlab, then please enter here the project URL.
-
-    It must have no trailing slash.
-
-    💡 If you don't use Gitlab, leave this empty and ignore all other Gitlab questions.
-
-    Example: `https://gitlab.glo.systems.com/customer/your-doodba-project`.
-
-domains_prod:
-  type: yaml
-  help: |
-    Configure the production domains for this project.
-
-    The format is a list with these keys:
-
-    - hosts: The domain names. List of strings.
-    - path_prefixes: The path prefixes (if any) that will match this routing rule.
-      List of strings. Default: [].
-    - redirect_to: Apply a 301 redirection to this other domain.
-      String. Default: null.
-    - cert_resolver: Traefik cert resolver name. String/Boolean. Default: "letsencrypt".
-      Set it to `true` to use a self-signed certificate. Set it to `false` to
-      disable TLS in those domains. If not `false`, it will force using HTTPS.
-    - entrypoints: List of entrypoint names to use when creating this rule. Default: [].
-      Leave empty to apply this rule on all available entrypoints. Those are defined
-      in your Traefik deployment.
-
-    Example:
-
-    # Main domains, with TLS and cert resolved with "letsencrypt" resolver
-    - hosts: [www.main.com, shop.main.com]
-    # Alternate domains that redirect to main ones
-    - {hosts: [main.com, old.main.com], redirect_to: www.main.com}
-    - {hosts: [www.shop.main.com, old.shop.main.com], redirect_to: shop.main.com}
-    # VPN-only domain, with self-signed certificate
-    - {hosts: [vpn.main.com], cert_resolver: true}
-
-    ⚠ Remember that you have to write one-line YAML, at least until Copier
-    supports multiline input
-
-    ⚠ Some advanced features are only available if you deploy with Traefik 2.
-
-    💡 The 1st host from the 1st domain that has no `path_prefixes` will be considered
-    the main one. In the example above, it'd be `www.main.com`.
-
-domains_test:
-  type: yaml
-  help: |
-    Configure the test domains for this project.
-
-    The format is the same as for `prod_domains`; a list with these keys:
-
-    - hosts: The domain names. List of strings.
-    - path_prefixes: The path prefixes (if any) that will match this routing rule.
-      List of strings. Default: [].
-    - redirect_to: Apply a 301 redirection to this other domain.
-      String. Default: null.
-    - cert_resolver: Traefik cert resolver name. String/Boolean. Default: "letsencrypt".
-      Set it to `true` to use a self-signed certificate. Set it to `false` to
-      disable TLS in those domains. If not `false`, it will force using HTTPS.
-    - entrypoints: List of entrypoint names to use when creating this rule. Default: [].
-      Leave empty to apply this rule on all available entrypoints. Those are defined
-      in your Traefik deployment.
-
-    Example:
-
-    # Main domains, with TLS and cert resolved with "letsencrypt" resolver
-    - hosts: [demo1.main.com, demo2.main.com]
-    # Alternate domains that redirect to main ones
-    - {hosts: [www.demo1.main.com, old.demo1.main.com], redirect_to: demo1.main.com}
-    - {hosts: [www.demo2.main.com, old.demo2.main.com], redirect_to: demo2.main.com}
-    # VPN-only domain, with self-signed certificate
-    - {hosts: [vpn.demo.main.com], cert_resolver: true}
-
-    ⚠ Remember that you have to write one-line YAML, at least until Copier
-    supports multiline input
-
-    ⚠ Some advanced features are only available if you deploy with Traefik 2.
-
-    💡 The 1st host from the 1st domain that has no `path_prefixes` will be considered
-    the main one. In the example above, it'd be `demo1.main.com`.
-
-paths_without_crawlers:
-  default:
-    - /web
-    - /website/info
-  help: >-
-    Tell me the list of paths which where you want to forbid crawlers.
-
-    Imagine you do not want your `/shop` and `/shop/**` pages to be indexed. Then put
-    here `[/shop]`.
-
-    ⚠️ It must be a list. And this is only supported if you deploy with Traefik.
-
-    💡 We will convert this to `Path` rules. Check valid syntax in
-    https://docs.traefik.io/routing/routers/#rule
-
-cidr_whitelist:
-  default: null
-  help: >-
-    If you need to whitelist certain CIDR to allow only them to access your Odoo
-    instance, set that here please.
-
-    ⚠️ It must be a list. And this is only supported if you deploy with Traefik 2+.
 
 odoo_version:
   help: On which odoo version is it based?
@@ -245,7 +137,7 @@ odoo_oci_image:
     project, specify here the path to the odoo image built with it. Leave it empty if
     you are not using a registry.
 
-  Example: gitlab.glo.systems:5005/customer/your-doodba-project
+  Example: glodouk/myproject-odoo
 
 odoo_listdb:
   default: True
@@ -271,18 +163,6 @@ odoo_dbfilter:
   help: >-
     Set your Odoo db filter. It must be a regexp that matches the domain name being
     visited. It is useful if you use Odoo in SaaS mode.
-
-odoo_proxy:
-  default: traefik
-  choices:
-    No proxy (dangerous for production): null
-    Traefik: traefik
-    Other proxy (it's up to you!): other
-  help: >-
-    ⚠️ Using a misconfigured proxy for production can create a security hole. Using none
-    can create performance problems.
-
-    Which proxy will you use to deploy odoo?
 
 postgres_version:
   default: 12
@@ -317,143 +197,3 @@ postgres_password:
   type: str
   help: >-
     What will be your postgres user password?
-
-smtp_default_from:
-  type: str
-  help: >-
-    Now, let's start configuring outgoing mail.
-
-    In case an email coming out from odoo doesn't have a valid `From:` header address,
-    which address should be the default one that sends the email?
-
-smtp_relay_host:
-  type: str
-  help: >-
-    ⚠️ If you leave this answer empty, all next SMTP settings will be ignored.
-
-    If you supply a valid SMTP host, production Odoo will be able to send emails without
-    needing to configure any `ir.mail_server` record, because Doodba will configure it
-    to use a mail relay that will manage a local mail queue before sending it to the
-    real SMTP endpoint (saving your mails from bad network conditions). The same relay
-    will be used to send backup reports.
-
-    So, what is your SMTP host?
-
-    Example: mail.example.com
-
-smtp_relay_port:
-  type: int
-  default: 587
-  help: >-
-    Indicate the port to connect in the SMTP server you just defined.
-
-    ⚠️ NEVER use port 465 👉 https://github.com/tomav/docker-mailserver/issues/1428
-
-smtp_relay_user:
-  type: str
-  help: >-
-    Indicate the user to connect in the SMTP server you just defined.
-
-    For Odoo to work fine, this user needs to be able to do mail spoofing.
-
-smtp_relay_password:
-  secret: true
-  type: str
-  default: example-smtp-password
-  help: >-
-    What is your SMTP password?
-
-smtp_canonical_default:
-  type: str
-  help: >-
-    Usually, if you send mails like "user@example.com", the canonical domain would be
-    "example.com".
-
-    This canonical domain should have correct SPF, DKIM and DMARC settings that allow
-    the SMTP host to send mails in its name.
-
-    When Odoo tries to send a mail that does not come from a canonical domain, the
-    domain you indicate here will be used when rewriting the address with SRS
-    (https://en.wikipedia.org/wiki/SRS).
-
-    What's your canonical domain?
-
-smtp_canonical_domains:
-  help: >-
-    Supply a list of other domains authorized to send email from this Odoo instance and
-    SMTP host. They will not be affected by SRS. They also must have valid SPF, DKIM and
-    DMARC settings.
-
-    You do not need to repeat the canonical domain you indicated above.
-
-    Example: [examplemail.com, example.org]
-
-backup_dst:
-  type: str
-  help: >-
-    If you want to use an Amazon S3 bucket, write its URL like
-    `boto3+s3://example_bucket[/example/path]` to make sure it works fine.
-
-    If you want to use any other backend, supply any URL supported by Duplicity (our
-    choice backup engine; read http://duplicity.nongnu.org/vers8/duplicity.1.html#sect7
-    for those URL formats).
-
-    If you don't want bakcups, leave this empty.
-
-    Where should the backups be stored?
-
-backup_email_from:
-  type: str
-  help: >-
-    The backup container will send email reports if the SMTP relay is properly
-    configured.
-
-    What email address should it use to send them?
-
-backup_email_to:
-  type: str
-  help: >-
-    Where to send those backup reports?
-
-backup_deletion:
-  default: false
-  type: bool
-  help: >-
-    If you're using S3, you probably want to delete outdated backups using bucket
-    lifecycle rules. If you use other storage backend, then you probably want to enable
-    outdated backups deletion using duplicity itself.
-
-    So, do you want to enable duplicity backup deletion via cron?
-
-backup_tz:
-  type: str
-  default: UTC
-  help: >-
-    Set the timezone used by the backup cron for reports.
-
-    Visit https://www.cyberciti.biz/faq/linux-unix-set-tz-environment-variable/ to know
-    how to obtain a valid value for this variable.
-
-backup_aws_access_key_id:
-  secret: true
-  type: str
-  default: null
-  help: >-
-    If you're using AWS S3 to store backups, provide here your access key ID.
-
-backup_aws_secret_access_key:
-  secret: true
-  type: str
-  default: null
-  help: >-
-    If you're using AWS S3 to store backups, provide here your secret access key.
-
-backup_passphrase:
-  secret: true
-  type: str
-  default: example-backup-passphrase
-  help: >-
-    ⚠️ This passphrase is critical for security, so keep it safe. You will need it to
-    restore backups.
-
-    Which will be your backups passphrase?
