@@ -110,7 +110,7 @@ project_license:
 odoo_version:
   help: On which odoo version is it based?
   type: float
-  default: 13.0
+  default: 14.0
   choices:
     - 7.0
     - 8.0
@@ -119,6 +119,7 @@ odoo_version:
     - 11.0
     - 12.0
     - 13.0
+    - 14.0
 
 odoo_initial_lang:
   default: en_US

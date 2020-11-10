@@ -30,11 +30,11 @@
 #
 
 # OCA web contains many useful modules, such as web_refresher
-./oca_web:
-  defaults:
-    depth: $DEPTH_DEFAULT
-  remotes:
-    odoo: https://github.com/OCA/web.git
-  target: odoo $ODOO_VERSION
-  merges:
-    - odoo $ODOO_VERSION
+#./oca_web:
+#  defaults:
+#    depth: $DEPTH_DEFAULT
+#  remotes:
+#    odoo: https://github.com/OCA/web.git
+#  target: odoo $ODOO_VERSION
+#  merges:
+#    - odoo $ODOO_VERSION

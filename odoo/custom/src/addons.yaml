@@ -1,8 +1,8 @@
 # See https://github.com/Tecnativa/doodba#optodoocustomsrcaddonsyaml
 #enterprise: ['*']
-oca_web:
-  - web_tree_resize_column
-  - web_dialog_size
-  - web_no_bubble
-  - web_refresher
-  - web_environment_ribbon
+#oca_web:
+#  - web_tree_resize_column
+#  - web_dialog_size
+#  - web_no_bubble
+#  - web_refresher
+#  - web_environment_ribbon
