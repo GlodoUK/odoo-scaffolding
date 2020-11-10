@@ -9,6 +9,8 @@ from copier.main import copy
 from plumbum import local
 from plumbum.cmd import diff, docker_compose, git, invoke, pre_commit
 
+from .conftest import LAST_ODOO_VERSION, build_file_tree
+
 WHITESPACE_PREFIXED_LICENSES = (
     "AGPL-3.0-or-later",
     "Apache-2.0",
@@ -16,6 +18,68 @@ WHITESPACE_PREFIXED_LICENSES = (
 )
 
 
+<<<<<<< HEAD
+=======
+def test_doodba_main_domain_label(cloned_template: Path, tmp_path: Path):
+    """Make sure the doodba.domain.main label is correct."""
+    copy(
+        str(cloned_template),
+        str(tmp_path),
+        vcs_ref="test",
+        force=True,
+        data={
+            "domains_prod": [
+                {
+                    "hosts": ["not0.prod.example.com", "not1.prod.example.com"],
+                    "redirect_to": "yes.prod.example.com",
+                },
+                {
+                    "hosts": ["not3.prod.example.com", "not4.prod.example.com"],
+                    "path_prefixes": ["/insecure/"],
+                    "entrypoints": ["web-insecure"],
+                },
+                {"hosts": ["yes.prod.example.com", "not5.prod.example.com"]},
+            ],
+            "domains_test": [
+                {
+                    "hosts": ["not0.test.example.com", "not1.test.example.com"],
+                    "redirect_to": "yes.test.example.com",
+                },
+                {
+                    "hosts": ["not3.test.example.com", "not4.test.example.com"],
+                    "path_prefixes": ["/insecure/"],
+                    "entrypoints": ["web-insecure"],
+                },
+                {"hosts": ["yes.test.example.com", "not5.test.example.com"]},
+            ],
+        },
+    )
+    with local.cwd(tmp_path):
+        prod_config = yaml.load(docker_compose("-f", "prod.yaml", "config"))
+        test_config = yaml.load(docker_compose("-f", "test.yaml", "config"))
+        assert (
+            prod_config["services"]["odoo"]["labels"]["doodba.domain.main"]
+            == "yes.prod.example.com"
+        )
+        assert (
+            test_config["services"]["odoo"]["labels"]["doodba.domain.main"]
+            == "yes.test.example.com"
+        )
+        # These labels must be present to avoid that Traefik 1 builds its own
+        # main domain assumption and tries to download its Let's Encrypt certs,
+        # which would possibly fail and hit LE's rate limits
+        # TODO Remove asserts when dropping Traefik 1 support
+        assert (
+            prod_config["services"]["odoo"]["labels"]["traefik.domain"]
+            == "yes.prod.example.com"
+        )
+        assert (
+            test_config["services"]["odoo"]["labels"]["traefik.domain"]
+            == "yes.test.example.com"
+        )
+
+
+>>>>>>> upstream/stable
 @pytest.mark.parametrize("project_license", WHITESPACE_PREFIXED_LICENSES)
 def test_license_whitespace_prefix(
     tmp_path: Path, cloned_template: Path, project_license
@@ -44,7 +108,7 @@ def test_no_vscode_in_private(cloned_template: Path, tmp_path: Path):
 
 
 def test_mqt_configs_synced(
-    tmp_path: Path, cloned_template: Path, supported_odoo_version: float
+    tmp_path: Path, cloned_template: Path, any_odoo_version: float
 ):
     """Make sure configs from MQT are in sync."""
     copy(
@@ -52,17 +116,17 @@ def test_mqt_configs_synced(
         str(tmp_path),
         vcs_ref="test",
         force=True,
-        data={"odoo_version": supported_odoo_version},
+        data={"odoo_version": any_odoo_version},
     )
     mqt = Path("vendor", "maintainer-quality-tools", "sample_files", "pre-commit-13.0")
     good_diffs = Path("tests", "samples", "mqt-diffs")
     for conf in (".pylintrc", ".pylintrc-mandatory"):
-        good = (good_diffs / f"{conf}.diff").read_text()
+        good = (good_diffs / f"v{any_odoo_version}-{conf}.diff").read_text()
         tested = diff(tmp_path / conf, mqt / conf, retcode=1)
         assert good == tested
 
 
-def test_pre_commit():
+def test_pre_commit_in_template():
     """Make sure linters are happy."""
     with local.cwd(Path(__file__).parent.parent):
         invoke("lint")
@@ -75,30 +139,73 @@ def test_code_workspace_file(tmp_path: Path, cloned_template: Path):
         str(tmp_path),
         vcs_ref="HEAD",
         force=True,
+        data={"odoo_version": supported_odoo_version},
     )
     assert (tmp_path / f"doodba.{tmp_path.name}.code-workspace").is_file()
     (tmp_path / f"doodba.{tmp_path.name}.code-workspace").rename(
         tmp_path / "doodba.other1.code-workspace"
     )
+    with local.cwd(tmp_path / "odoo" / "custom" / "src" / "private"):
+        # Generate generic addon path
+        is_py3 = supported_odoo_version >= 11
+        manifest = "__manifest__" if is_py3 else "__openerp__"
+        build_file_tree(
+            {
+                f"test_module_static/{manifest}.py": f"""\
+                    {"{"}
+                    'name':'test module','license':'AGPL-3',
+                    'version':'{supported_odoo_version}.1.0.0',
+                    'installable': True,
+                    'auto_install': False
+                    {"}"}
+                """,
+                "test_module_static/static/index.html": """\
+                    <html>
+                    </html>
+                """,
+            }
+        )
     with local.cwd(tmp_path):
         invoke("write-code-workspace-file")
         assert (tmp_path / "doodba.other1.code-workspace").is_file()
         assert not (tmp_path / f"doodba.{tmp_path.name}.code-workspace").is_file()
         # Do a stupid and dirty git clone to check it's sorted fine
         git("clone", cloned_template, Path("odoo", "custom", "src", "zzz"))
+        # "Clone" a couple more repos, including odoo to check order
+        git("clone", cloned_template, Path("odoo", "custom", "src", "aaa"))
+        git("clone", cloned_template, Path("odoo", "custom", "src", "bbb"))
+        git("clone", cloned_template, Path("odoo", "custom", "src", "odoo"))
         invoke("write-code-workspace-file", "-c", "doodba.other2.code-workspace")
         assert not (tmp_path / f"doodba.{tmp_path.name}.code-workspace").is_file()
         assert (tmp_path / "doodba.other1.code-workspace").is_file()
         assert (tmp_path / "doodba.other2.code-workspace").is_file()
         with (tmp_path / "doodba.other2.code-workspace").open() as fp:
             workspace_definition = json.load(fp)
-        assert workspace_definition == {
-            "folders": [
-                {"path": "odoo/custom/src/zzz"},
-                {"path": "odoo/custom/src/private"},
-                {"path": "."},
-            ]
-        }
+        # Check workspace folder definition and order
+        assert workspace_definition["folders"] == [
+            {"path": "odoo/custom/src/aaa"},
+            {"path": "odoo/custom/src/bbb"},
+            {"path": "odoo/custom/src/zzz"},
+            {"path": "odoo/custom/src/odoo"},
+            {"path": "odoo/custom/src/private"},
+            {"name": f"doodba.{tmp_path.name}", "path": "."},
+        ]
+        # Firefox debugger configuration
+        url = f"http://localhost:{supported_odoo_version:.0f}069/test_module_static/static/"
+        path = "${workspaceRoot:private}/test_module_static/static/"
+        firefox_configuration = next(
+            conf
+            for conf in workspace_definition["launch"]["configurations"]
+            if conf["type"] == "firefox"
+        )
+        assert {"url": url, "path": path} in firefox_configuration["pathMappings"]
+        # Chrome debugger configuration
+        chrome_configuration = next(
+            conf
+            for conf in workspace_definition["launch"]["configurations"]
+            if conf["type"] == "chrome"
+        )
+        assert chrome_configuration["pathMapping"][url] == path
 
 
 def test_dotdocker_ignore_content(tmp_path: Path, cloned_template: Path):
@@ -121,14 +228,14 @@ def test_template_update_badge(tmp_path: Path, cloned_template: Path):
     """Test that the template update badge is properly formatted."""
     tag = "v99999.0.0-99999-bye-bye"
     with local.cwd(cloned_template):
-        git("tag", "--delete", "test")
+        git("commit", "--allow-empty", "-m", "dumb commit")
         git("tag", "--force", tag)
     copy(str(cloned_template), str(tmp_path), vcs_ref=tag, force=True)
     expected = "[![Last template update](https://img.shields.io/badge/last%20template%20update-v99999.0.0--99999--bye--bye-informational)](https://github.com/Tecnativa/doodba-copier-template/tree/v99999.0.0-99999-bye-bye)"
     assert expected in (tmp_path / "README.md").read_text()
 
 
-def test_pre_commit_config(
+def test_pre_commit_in_subproject(
     tmp_path: Path, cloned_template: Path, supported_odoo_version: float
 ):
     """Test that .pre-commit-config.yaml has some specific settings fine."""
@@ -139,6 +246,7 @@ def test_pre_commit_config(
         force=True,
         data={"odoo_version": supported_odoo_version},
     )
+    # Make sure the template was correctly rendered
     pre_commit_config = yaml.safe_load(
         (tmp_path / ".pre-commit-config.yaml").read_text()
     )
@@ -160,6 +268,90 @@ def test_pre_commit_config(
                 ]
                 assert {"id": "fix-encoding-pragma"} in repo["hooks"]
     assert found == should_find
+    # Make sure it reformats correctly some files
+    with local.cwd(tmp_path / "odoo" / "custom" / "src" / "private"):
+        git("add", "-A")
+        git("commit", "-m", "hello world", retcode=1)
+        git("commit", "-am", "hello world")
+        manifest = "__manifest__" if is_py3 else "__openerp__"
+        build_file_tree(
+            {
+                f"test_module/{manifest}.py": f"""\
+                    {"{"}
+                    'name':'test module','license':'AGPL-3',
+                    'version':'{supported_odoo_version}.1.0.0',
+                    'installable': True,
+                    'auto_install': False
+                    {"}"}
+                """,
+                "test_module/__init__.py": """\
+                    from . import models;
+                """,
+                "test_module/models/__init__.py": """\
+                    from . import res_partner;
+                """,
+                "test_module/models/res_partner.py": """\
+                    from odoo import models;from os.path import join;
+                    from requests import get
+                    from logging import getLogger
+                    import io,sys,odoo
+                    _logger=getLogger(__name__)
+                    class ResPartner(models.Model):
+                        _name='res.partner'
+                        def some_method(self,test):
+                            '''some weird
+                                docstring'''
+                            _logger.info(models,join,get,io,sys,odoo)
+                """,
+            }
+        )
+        git("add", "-A")
+        git("commit", "-m", "added test_module", retcode=1)
+        git("commit", "-am", "added test_module")
+        expected_samples = {
+            f"test_module/{manifest}.py": f"""\
+                {"{"}
+                    "name": "test module",
+                    "license": "AGPL-3",
+                    "version": "{supported_odoo_version}.1.0.0",
+                    "installable": True,
+                    "auto_install": False,
+                {"}"}
+            """,
+            "test_module/__init__.py": """\
+                from . import models
+            """,
+            "test_module/models/__init__.py": """\
+                from . import res_partner
+            """,
+            "test_module/models/res_partner.py": '''\
+                import io
+                import sys
+                from logging import getLogger
+                from os.path import join
+
+                from requests import get
+
+                import odoo
+                from odoo import models
+
+                _logger = getLogger(__name__)
+
+
+                class ResPartner(models.Model):
+                    _name = "res.partner"
+
+                    def some_method(self, test):
+                        """some weird
+                        docstring"""
+                        _logger.info(models, join, get, io, sys, odoo)
+            ''',
+        }
+        for path, content in expected_samples.items():
+            content = dedent(content)
+            if not is_py3 and path.endswith(".py"):
+                content = f"# -*- coding: utf-8 -*-\n{content}"
+            assert Path(path).read_text() == content
 
 
 def test_no_python_write_bytecode_in_devel(

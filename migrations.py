@@ -60,3 +60,15 @@ def remove_odoo_auto_folder(c):
     There's no need to have it in our code tree anymore.
     """
     shutil.rmtree(Path("odoo", "auto"), ignore_errors=True)
+
+
+@task
+def remove_vscode_launch_and_tasks(c, dst_path):
+    """Remove .vscode/{launch,tasks}.json file.
+
+    Launch configurations are now generated in the doodba.*.code-workspace file.
+    """
+    for fname in ("launch", "tasks"):
+        garbage = Path(dst_path, ".vscode", f"{fname}.json")
+        if garbage.is_file():
+            garbage.unlink()

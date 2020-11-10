@@ -34,7 +34,7 @@ services:
     environment:
       DOODBA_ENVIRONMENT: "${DOODBA_ENVIRONMENT-devel}"
       LIST_DB: "true"
-      PTVSD_ENABLE: "${DOODBA_PTVSD_ENABLE:-0}"
+      DEBUGPY_ENABLE: "${DOODBA_DEBUGPY_ENABLE:-0}"
       PGDATABASE: &dbname devel
       PYTHONDONTWRITEBYTECODE: 1
       PYTHONOPTIMIZE: ""
@@ -69,12 +69,14 @@ services:
       - --dev=reload,qweb,werkzeug,xml
       {%- endif %}
 
+  {% if postgres_version -%}
   db:
     extends:
       file: common.yaml
       service: db
     environment:
       POSTGRES_PASSWORD: odoopassword
+  {%- endif %}
 
   pgweb:
     image: sosedoff/pgweb

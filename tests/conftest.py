@@ -1,6 +1,8 @@
 import json
 import os
+import textwrap
 from pathlib import Path
+from typing import Dict, Union
 
 import pytest
 import yaml
@@ -112,6 +114,7 @@ def traefik_host(docker: LocalCommand, request):
         ):
             traefik_container = traefik_run(
                 "--accessLog=true",
+                "--entrypoints.web-alt.address=:8080",
                 "--entrypoints.web-insecure.address=:80",
                 "--entrypoints.web-main.address=:443",
                 "--log.level=debug",
@@ -121,12 +124,13 @@ def traefik_host(docker: LocalCommand, request):
             ).strip()
         else:
             traefik_container = traefik_run(
-                "--defaultEntryPoints=http,https",
+                "--defaultEntryPoints=web-insecure,web-main",
                 "--docker.exposedByDefault=false",
                 "--docker.watch",
                 "--docker",
-                "--entryPoints=Name:http Address::80 Redirect.EntryPoint:https",
-                "--entryPoints=Name:https Address::443 Compress:on TLS TLS.minVersion:VersionTLS12",
+                "--entryPoints=Name:web-alt Address::8080 Compress:on",
+                "--entryPoints=Name:web-insecure Address::80 Redirect.EntryPoint:web-main",
+                "--entryPoints=Name:web-main Address::443 Compress:on TLS TLS.minVersion:VersionTLS12",
                 "--logLevel=debug",
             ).strip()
         traefik_details = json.loads(docker("container", "inspect", traefik_container))
@@ -159,3 +163,15 @@ def teardown_function(function):
     if pre_commit_log.is_file():
         print(pre_commit_log.read_text())
         pre_commit_log.unlink()
+
+
+# Helpers
+def build_file_tree(spec: Dict[Union[str, Path], str], dedent: bool = True):
+    """Builds a file tree based on the received spec."""
+    for path, contents in spec.items():
+        path = Path(path)
+        if dedent:
+            contents = textwrap.dedent(contents)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w") as fd:
+            fd.write(contents)
