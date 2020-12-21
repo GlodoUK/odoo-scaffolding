@@ -1,1 +1,9 @@
 # See syntax in https://www.ssh.com/ssh/config/ and `man ssh_config`
+## Sample for Enterprise
+#Host glodouk_enterprise.github.com
+#  HostName github.com
+#  User git
+## Change IdentityFile to the name of the new SSH key you created
+#  IdentityFile ~/.ssh/enterprise
+#  IdentitiesOnly yes
+#  StrictHostKeyChecking no
