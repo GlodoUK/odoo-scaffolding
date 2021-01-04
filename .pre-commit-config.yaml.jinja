@@ -35,15 +35,14 @@ repos:
         name: isort except __init__.py
         args: [--settings, .]
         exclude: /__init__\.py$
-  # TODO Migrate to new prettier pre-commit repo after fixed:
-  # HACK https://github.com/prettier/pre-commit/pull/17
-  # HACK https://github.com/prettier/pre-commit/pull/18
-  - repo: https://github.com/prettier/prettier
-    rev: 2.1.2
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.1.2
     hooks:
       - id: prettier
         name: prettier + plugin-xml
         additional_dependencies:
+          # HACK https://github.com/prettier/pre-commit/issues/16#issuecomment-713474520
+          - prettier@2.1.2
           - "@prettier/plugin-xml@0.12.0"
         args:
           - --plugin=@prettier/plugin-xml
@@ -80,7 +79,7 @@ repos:
         files: /__init__\.py$
         additional_dependencies: ["flake8-bugbear==20.1.4"]
   - repo: https://github.com/pycqa/pylint
-    rev: pylint-2.6.0
+    rev: pylint-2.5.3
     hooks:
       - id: pylint
         name: pylint with optional checks
@@ -90,7 +89,7 @@ repos:
           - --exit-zero
         verbose: true
         additional_dependencies:
-          - isort==4.3.21
+          - isort==4.3.4
           - pylint-odoo==3.5.0
       - id: pylint
         name: pylint with mandatory checks
@@ -98,7 +97,7 @@ repos:
           - --valid_odoo_versions={{ "%.1f"|format(odoo_version) }}
           - --rcfile=.pylintrc-mandatory
         additional_dependencies:
-          - isort==4.3.21
+          - isort==4.3.4
           - pylint-odoo==3.5.0
   - repo: https://github.com/pre-commit/mirrors-eslint
     rev: v7.8.1
