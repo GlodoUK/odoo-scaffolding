@@ -292,3 +292,46 @@ def tests(c, db, install):
         f" --stop-after-init --no-http"
     )
     c.run(cmd, pty=True)
+
+
+@task(develop)
+def create_module_ssh_config(c, customer, target_repo):
+    cmd_key = (
+        f"ssh-keygen -t ed25519 -C '{customer}' -N '' -f odoo/custom/ssh/glodouk_{target_repo}_ed25519"
+    )
+
+    # Create the key
+    c.run(cmd_key, pty=True)
+
+    config_str = (
+        f"\nHost glodouk_{target_repo}.github.com\n"
+        f"    HostName github.com\n"
+        f"    User git\n"
+        f"    IdentityFile ~/.ssh/glodouk_{target_repo}_id_rsa\n"
+        f"    IdentitiesOnly yes\n"
+        f"    StrictHostKeyChecking no"
+        )
+
+    cmd_config = f"echo '{config_str}' >> odoo/custom/ssh/config"
+
+    # Append Config
+    c.run(cmd_config, pty=True)
+
+    repo_str = (
+        f"\n./glodouk_{target_repo}:\n"
+        f"  defaults:\n"
+        f"    depth: $DEPTH_DEFAULT\n"
+        f"  remotes:\n"
+        f"    glodo: git@glodouk_{target_repo}.github.com:GlodoUK/{target_repo}.git\n"
+        f"  target: glodo $ODOO_VERSION\n"
+        f"  merges:\n"
+        f"    - glodo $ODOO_VERSION"
+    )
+
+    cmd_repo = f"echo '{repo_str}' >> odoo/custom/src/repos.yaml"
+
+    c.run(cmd_repo, pty=True)
+
+    addons_str = f"glodouk_{target_repo}: [\"*\"]"
+    cmd_addons = f"echo '{addons_str}' >> odoo/custom/src/addons.yaml"
+    c.run(cmd_addons, pty=True)
