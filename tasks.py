@@ -119,6 +119,7 @@ def update_test_samples(c):
                         fd.write(c.run(f"diff {copied} {mqt}", warn=True).stdout)
         c.run("poetry run pre-commit run -a", warn=True)
 
+
 @task(develop)
 def create_module_ssh_config(c, customer, target_repo):
     cmd_key = (
