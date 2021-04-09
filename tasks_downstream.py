@@ -307,7 +307,7 @@ def create_module_ssh_config(c, customer, target_repo):
         f"\nHost glodouk_{target_repo}.github.com\n"
         f"    HostName github.com\n"
         f"    User git\n"
-        f"    IdentityFile ~/.ssh/glodouk_{target_repo}_id_rsa\n"
+        f"    IdentityFile ~/.ssh/glodouk_{target_repo}_ed25519\n"
         f"    IdentitiesOnly yes\n"
         f"    StrictHostKeyChecking no"
         )
