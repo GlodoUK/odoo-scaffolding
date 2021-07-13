@@ -16,11 +16,7 @@ PROJECT_ROOT = Path(__file__).parent.absolute()
 SRC_PATH = PROJECT_ROOT / "odoo" / "custom" / "src"
 UID_ENV = {"GID": str(os.getgid()), "UID": str(os.getuid()), "UMASK": "27"}
 COMMON_YAML = yaml.safe_load((PROJECT_ROOT / "common.yaml").read_text())
-ODOO_VERSION = float(
-    COMMON_YAML["services"]["odoo"][
-        "build"
-    ]["args"]["ODOO_VERSION"]
-)
+ODOO_VERSION = float(COMMON_YAML["services"]["odoo"]["build"]["args"]["ODOO_VERSION"])
 DB_USER = COMMON_YAML["services"]["odoo"]["environment"]["PGUSER"]
 
 
@@ -286,6 +282,10 @@ def upgrade(c, db=None, include_core=False):
 @task(develop)
 def tests(c, db, install):
     """Run the unit tests for a module"""
+
+    # TODO: Update from upstream which allows many more features
+    # https://github.com/Tecnativa/doodba-copier-template/blob/main/tasks_downstream.py#L631
+
     cmd = (
         f"docker-compose run"
         f" --rm odoo odoo --test-enable -d {db} -i {install}"
@@ -295,30 +295,37 @@ def tests(c, db, install):
 
 
 @task(develop)
-def create_module_ssh_config(c, customer, target_repo):
+def create_module_ssh_config(c, customer, target_repo, yaml_alias=None):
     cmd_key = (
-        f"ssh-keygen -t ed25519 -C '{customer}' -N '' -f odoo/custom/ssh/glodouk_{target_repo}_ed25519"
+        f"ssh-keygen -t ed25519 -C '{customer}' -N '' -f"
+        f" odoo/custom/ssh/glodouk_{target_repo}_ed25519"
     )
 
     # Create the key
     c.run(cmd_key, pty=True)
 
-    config_str = (
+    # TODO: Make this more sensible and automatically check if this exists,
+    # if odoo/custom/ssh/config, etc.
+    ssh_config = (
         f"\nHost glodouk_{target_repo}.github.com\n"
         f"    HostName github.com\n"
         f"    User git\n"
         f"    IdentityFile ~/.ssh/glodouk_{target_repo}_ed25519\n"
         f"    IdentitiesOnly yes\n"
         f"    StrictHostKeyChecking no"
-        )
+    )
 
-    cmd_config = f"echo '{config_str}' >> odoo/custom/ssh/config"
+    cmd_config = f"echo '{ssh_config}' >> odoo/custom/ssh/config"
 
     # Append Config
     c.run(cmd_config, pty=True)
 
+    repo_alias = f"glodouk_{target_repo}"
+    if yaml_alias:
+        repo_alias = yaml_alias
+
     repo_str = (
-        f"\n./glodouk_{target_repo}:\n"
+        f"\n./{repo_alias}:\n"
         f"  defaults:\n"
         f"    depth: $DEPTH_DEFAULT\n"
         f"  remotes:\n"
@@ -332,6 +339,10 @@ def create_module_ssh_config(c, customer, target_repo):
 
     c.run(cmd_repo, pty=True)
 
-    addons_str = f"glodouk_{target_repo}: [\"*\"]"
+    addons_str = f'{repo_alias}: ["*"]'
+
+    # TODO: Check if already exists before appending
     cmd_addons = f"echo '{addons_str}' >> odoo/custom/src/addons.yaml"
-    c.run(cmd_addons, pty=True)
+
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(cmd_addons, pty=True)
