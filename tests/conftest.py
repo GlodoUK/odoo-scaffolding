@@ -1,5 +1,7 @@
 import json
+import logging
 import os
+import socket
 import textwrap
 from pathlib import Path
 from typing import Dict, Union
@@ -7,9 +9,12 @@ from typing import Dict, Union
 import pytest
 import yaml
 from packaging import version
-from plumbum import FG, local
-from plumbum.cmd import git
+from plumbum import FG, ProcessExecutionError, local
+from plumbum.cmd import docker_compose, git, invoke
 from plumbum.machines.local import LocalCommand
+
+_logger = logging.getLogger(__name__)
+
 
 with open("copier.yml") as copier_fd:
     COPIER_SETTINGS = yaml.safe_load(copier_fd)
@@ -28,6 +33,15 @@ SELECTED_ODOO_VERSIONS = (
 
 # Traefik versions matrix
 ALL_TRAEFIK_VERSIONS = ("latest", "1.7")
+
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--skip-docker-tests",
+        action="store_true",
+        default=False,
+        help="Skip Docker tests",
+    )
 
 
 @pytest.fixture(params=ALL_ODOO_VERSIONS)
@@ -74,9 +88,9 @@ def cloned_template(tmp_path_factory):
 
 
 @pytest.fixture()
-def docker() -> LocalCommand:
-    if os.environ.get("DOCKER_TEST") != "1":
-        pytest.skip("Missing DOCKER_TEST=1 env variable")
+def docker(request) -> LocalCommand:
+    if request.config.getoption("--skip-docker-tests"):
+        pytest.skip("Skipping docker tests")
     try:
         from plumbum.cmd import docker
     except ImportError:
@@ -175,3 +189,119 @@ def build_file_tree(spec: Dict[Union[str, Path], str], dedent: bool = True):
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w") as fd:
             fd.write(contents)
+
+
+def socket_is_open(host, port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if sock.connect_ex((host, port)) == 0:
+        return True
+    return False
+
+
+def generate_test_addon(
+    addon_name, odoo_version, installable=True, ugly=False, dependencies=None
+):
+    """Generates a simple addon for testing
+    Can be an ugly addon to trigger pre-commit formatting
+    """
+    is_py3 = odoo_version >= 11
+    manifest = "__manifest__" if is_py3 else "__openerp__"
+    file_tree = {
+        f"{addon_name}/__init__.py": """\
+            from . import models
+        """,
+        f"{addon_name}/models/__init__.py": """\
+            from . import res_partner
+        """,
+    }
+    if ugly:
+        file_tree.update(
+            {
+                f"{addon_name}/{manifest}.py": f"""\
+                    {"{"}
+                    'name':"{addon_name}",'license':'AGPL-3',
+                    'version':'{odoo_version}.1.0.0',
+                    'depends': {dependencies or '["base"]'},
+                    'installable': {installable},
+                    'auto_install': False
+                    {"}"}
+                """,
+                f"{addon_name}/models/res_partner.py": """\
+                    from odoo import models;from os.path import join;
+                    from requests import get
+                    from logging import getLogger
+                    import io,sys,odoo
+                    _logger=getLogger(__name__)
+                    class ResPartner(models.Model):
+                        _inherit='res.partner'
+                        def some_method(self,test):
+                            '''some weird
+                                docstring'''
+                            _logger.info(models,join,get,io,sys,odoo)
+                """,
+            }
+        )
+    else:
+        file_tree.update(
+            {
+                f"{addon_name}/{manifest}.py": f"""\
+                    {"{"}
+                        "name": "{addon_name}",
+                        "license": "AGPL-3",
+                        "version": "{odoo_version}.1.0.0",
+                        "depends": {dependencies or '["base"]'},
+                        "installable": {installable},
+                        "auto_install": False,
+                    {"}"}
+                """,
+                f"{addon_name}/models/res_partner.py": '''\
+                    import io
+                    import sys
+                    from logging import getLogger
+                    from os.path import join
+
+                    from requests import get
+
+                    import odoo
+                    from odoo import models
+
+                    _logger = getLogger(__name__)
+
+
+                    class ResPartner(models.Model):
+                        _inherit = "res.partner"
+
+                        def some_method(self, test):
+                            """some weird
+                            docstring"""
+                            _logger.info(models, join, get, io, sys, odoo)
+                ''',
+            }
+        )
+    build_file_tree(file_tree)
+
+
+def _containers_running(exec_path):
+    with local.cwd(exec_path):
+        if len(docker_compose("ps", "-aq").splitlines()) > 0:
+            _logger.error(docker_compose("ps", "-a"))
+            return True
+        return False
+
+
+def safe_stop_env(exec_path, purge=True):
+    with local.cwd(exec_path):
+        try:
+            args = ["stop"]
+            if purge:
+                args.append("--purge")
+            invoke.run(args)
+        except ProcessExecutionError as e:
+            if (
+                "has active endpoints" not in e.stderr
+                and "has active endpoints" not in e.stdout
+            ):
+                raise e
+            assert not _containers_running(
+                exec_path
+            ), "Containers running or not removed. 'stop [--purge]' command did not work."

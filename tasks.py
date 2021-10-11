@@ -4,6 +4,7 @@ These tasks are to be executed with https://www.pyinvoke.org/ in Python 3.6+
 and are related to the maintenance of this template project, not the child
 projects generated with it.
 """
+import re
 import tempfile
 from pathlib import Path
 from unittest import mock
@@ -118,4 +119,3 @@ def update_test_samples(c):
                         )
                         fd.write(c.run(f"diff {copied} {mqt}", warn=True).stdout)
         c.run("poetry run pre-commit run -a", warn=True)
-        

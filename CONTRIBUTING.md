@@ -27,7 +27,11 @@ else here: issues and pull requests.
 
 ## General Discussion
 
-Follow the same instructions as for [issues](#issues).
+Please make use of [Doodba discussions](https://github.com/Tecnativa/doodba/discussions)
+to share knowledge, ideas or make questions.
+
+There's one concrete
+[channel for stuff specifically related to this template](https://github.com/Tecnativa/doodba/discussions?discussions_q=category%3A%22Doodba+-+The+template%22).
 
 ## Issues
 
@@ -70,14 +74,6 @@ blocks here are:
 - [pytest](https://docs.pytest.org/)
 
 ### Open a Pull Request
-
-You will have to choose the correct base to start developing your change:
-
-1. Base it on the `devel` branch if you're adding a new feature. This branch is intended
-   to be the next feature or major release.
-1. Base it on the `stable` branch if you're fixing a bug. This branch only accepts that
-   kind of patches. It is also updated from `devel` when a new bigger release is going
-   to happen.
 
 Follow
 [Github's instructions to open a pull request](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request).
