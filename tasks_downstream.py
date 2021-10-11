@@ -1031,7 +1031,6 @@ def upgrade(c, db=None, include_core=False):
         cmd += " --ignore-core-addons"
     if db:
         cmd += f" -d {db}"
-
     c.run(cmd, pty=True)
 
 
@@ -1044,8 +1043,15 @@ def tests(c, db, install):
     )
 
 
-@task(develop)
-def create_module_ssh_config(c, customer, target_repo, yaml_alias=None):
+@task(
+    develop,
+    help={
+        "customer": "Customer or reference to use on the SSH key",
+        "target_repo": "The repository name i.e. edi, or enterprise",
+        "yaml_alias": "The alias to use in the yaml file. Optional.",
+    },
+)
+def add_glodouk_repo(c, customer, target_repo, yaml_alias=None):
     cmd_key = (
         f"ssh-keygen -t ed25519 -C '{customer}' -N '' -f"
         f" odoo/custom/ssh/glodouk_{target_repo}_ed25519"
@@ -1096,3 +1102,18 @@ def create_module_ssh_config(c, customer, target_repo, yaml_alias=None):
 
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd_addons, pty=True)
+
+    print(f"Please now add the new SSH key to the repo {target_repo}")
+
+
+@task(
+    develop,
+    help={"purge": "Remove all related containers, networks images and volumes"},
+)
+def down(c, purge=False):
+    """Take down and (optionally) purge environment."""
+    cmd = "docker-compose down"
+    if purge:
+        cmd += " --remove-orphans --rmi local --volumes"
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(cmd)
