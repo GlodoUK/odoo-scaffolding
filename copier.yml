@@ -18,6 +18,7 @@ _exclude:
   - /.github
   - /.gitmodules
   - /.vscode/launch.json
+  - /.vscode/settings.json
   - /**.pyc
   - /**.pyo
   - /CONTRIBUTING.md
@@ -28,6 +29,7 @@ _exclude:
   - /poetry.lock
   - /pyproject.toml
   - /scripts
+  - /tasks_downstream.py
   - /tests
   - /vendor
   - /**/.empty
@@ -41,6 +43,7 @@ _skip_if_exists:
   - odoo/custom/ssh/*
 
 _tasks:
+  - invoke after-update
   - invoke develop
 
 _migrations:
@@ -69,6 +72,82 @@ _migrations:
         - --collection=migrations
         - remove-vscode-launch-and-tasks
         - "{{ _copier_conf.dst_path }}"
+  - version: v2.7.0a4
+    after:
+      - - invoke
+        - --search-root={{ _copier_conf.src_path }}
+        - --collection=migrations
+        - remove-vscode-settings
+        - "{{ _copier_conf.dst_path }}"
+  - version: v3.0.1
+    before: &update_no_license
+      - - invoke
+        - --search-root={{ _copier_conf.src_path }}
+        - --collection=migrations
+        - update-no-license
+        - "{{ _copier_conf.dst_path }}"
+        - "{{ _copier_conf.answers_file }}"
+    after: *update_no_license
+
+# Questions for the user
+odoo_version:
+  help: On which odoo version is it based?
+  type: float
+  default: 15.0
+  choices:
+    - 7.0
+    - 8.0
+    - 9.0
+    - 10.0
+    - 11.0
+    - 12.0
+    - 13.0
+    - 14.0
+    - 15.0
+
+odoo_dbfilter:
+  default: ".*"
+  type: str
+  help: >-
+    Set your Odoo db filter. It must be a regexp that matches the domain name being
+    visited. It is useful if you use Odoo in SaaS mode.
+
+odoo_initial_lang:
+  default: en_GB
+  type: str
+  help: >-
+    If you want to initialize Odoo automatically in a specific language, write it here.
+    The format must be ll_CC where ll is the language code and CC is the country code.
+
+    Examples: en_US, es_ES, es_VE...
+
+odoo_admin_password:
+  secret: true
+  default: example-admin-password
+  type: str
+  help: >-
+    💡 To auto-generate strong passwords, see https://ddg.gg/?q=password+64+strong
+
+    ⚠️ This password is critical for security, especially if you set odoo_listdb to
+    true, so keep it safe.
+
+    What will be your odoo admin password?
+
+odoo_listdb:
+  default: false
+  type: bool
+  help: >-
+    Do you want to list databases publicly?
+
+odoo_oci_image:
+  type: str
+  help: >-
+    If you are using an OCI/Docker image registry (such as the Docker Hub, Quay or
+    Gitlab registry) to publish the Odoo images that will be built with this Doodba
+    project, specify here the path to the odoo image built with it. Leave it empty if
+    you are not using a registry.
+
+    Example: docker.io/myteam/example-odoo
 
 project_author:
   type: str
@@ -83,7 +162,8 @@ project_name:
   help: >-
     What's your project name?
 
-    Do not use dots or spaces in the name; just "A-Za-z0-9-_" please.
+    Do not use dots or spaces in the name; just "A-Za-z0-9-_" please in the format
+    <name>-odoo.
   default: myproject-odoo
 
 project_license:
@@ -95,9 +175,9 @@ project_license:
     find other propietary licenses we support in this scaffolding. Make a wise choice!
 
     So, what's your project's license?
-  default: null
+  default: no_license
   choices:
-    No license: null
+    No license: no_license
     Apache License 2.0: Apache-2.0
     Boost Software License 1.0: BSL-1.0
     GNU Affero General Public License (AGPL) 3.0 or later: AGPL-3.0-or-later
@@ -106,75 +186,17 @@ project_license:
     Odoo Enterprise Edition License v1.0: OEEL-1.0
     Odoo Proprietary License v1.0: OPL-1.0
 
-odoo_version:
-  help: On which odoo version is it based?
-  type: float
-  default: 14.0
-  choices:
-    - 7.0
-    - 8.0
-    - 9.0
-    - 10.0
-    - 11.0
-    - 12.0
-    - 13.0
-    - 14.0
-
-odoo_initial_lang:
-  default: en_US
-  type: str
-  help: >-
-    If you want to initialize Odoo automatically in a specific language, write it here.
-    The format must be ll_CC where ll is the language code and CC is the country code.
-
-    Examples: en_US, es_ES, es_VE...
-
-odoo_oci_image:
-  type: str
-  help: >-
-    If you are using an OCI/Docker image registry (such as the Docker Hub, Quay or
-    Gitlab registry) to publish the Odoo images that will be built with this Doodba
-    project, specify here the path to the odoo image built with it. Leave it empty if
-    you are not using a registry.
-
-  Example: glodouk/myproject-odoo
-
-odoo_listdb:
-  default: True
-  type: bool
-  help: >-
-    Do you want to list databases publicly?
-
-odoo_admin_password:
-  secret: true
-  default: example-admin-password
-  type: str
-  help: >-
-    💡 To auto-generate strong passwords, see https://ddg.gg/?q=password+64+strong
-
-    ⚠️ This password is critical for security, especially if you have set odoo_listdb to
-    true, so keep it safe.
-
-    What will be your odoo admin password?
-
-odoo_dbfilter:
-  default: ".*"
-  type: str
-  help: >-
-    Set your Odoo db filter. It must be a regexp that matches the domain name being
-    visited. It is useful if you use Odoo in SaaS mode.
-
 postgres_version:
-  default: 13
+  default: "13"
   help: >-
     Which PostgreSQL version do you want to deploy?
   choices:
-    I will use an external PostgreSQL server: null
-    "9.6": 9.6
-    "10": 10
-    "11": 11
-    "12": 12
-    "13": 13
+    I will use an external PostgreSQL server: ""
+    "9.6": "9.6"
+    "10": "10"
+    "11": "11"
+    "12": "12"
+    "13": "13"
 
 postgres_username:
   type: str
