@@ -1038,6 +1038,7 @@ def upgrade(c, db=None, include_core=False):
 def tests(c, db, install):
     """Run the unit tests for a module"""
 
+    # pylint: disable=print-used
     print(
         "Please use the `test` task instead. This has been superseded.", file=sys.stderr
     )
@@ -1103,6 +1104,7 @@ def add_glodouk_repo(c, customer, target_repo, yaml_alias=None):
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd_addons, pty=True)
 
+    # pylint: disable=print-used
     print(f"Please now add the new SSH key to the repo {target_repo}")
 
 
