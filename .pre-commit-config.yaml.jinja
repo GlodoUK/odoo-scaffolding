@@ -25,7 +25,7 @@ repos:
         language: fail
         files: "\\.rej$"
   - repo: https://github.com/oca/maintainer-tools
-    rev: b9c963d
+    rev: bde63eeb13a64561ef53bb9d609f6b9b87efd301
     hooks:
       # update the NOT INSTALLABLE ADDONS section above
       - id: oca-update-pre-commit-excluded-addons
@@ -44,17 +44,17 @@ repos:
           - --remove-duplicate-keys
           - --remove-unused-variables
   - repo: https://github.com/psf/black
-    rev: 20.8b1
+    rev: 21.12b0
     hooks:
       - id: black
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.7.2
+    rev: v2.29.1
     hooks:
       - id: pyupgrade
         args:
           - --keep-percent-format
-  - repo: https://github.com/timothycrosley/isort
-    rev: 5.5.1
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.10.1
     hooks:
       - id: isort
         name: isort except __init__.py
@@ -64,13 +64,10 @@ repos:
     rev: v2.1.2
     hooks:
       - id: prettier
-        name: prettier + plugin-xml
-        additional_dependencies:
-          # HACK https://github.com/prettier/pre-commit/issues/16#issuecomment-713474520
-          - prettier@2.1.2
-          - "@prettier/plugin-xml@0.12.0"
-        args:
-          - --plugin=@prettier/plugin-xml
+  - repo: https://github.com/GlodoUK/pre-commit-xmllint
+    rev: b9281d1
+    hooks:
+      - id: lxml-format
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.2.0
     hooks:
@@ -92,7 +89,7 @@ repos:
       - id: mixed-line-ending
         args: ["--fix=lf"]
   - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.8.3
+    rev: 4.0.1
     hooks:
       - id: flake8
         name: flake8 except __init__.py
@@ -102,9 +99,9 @@ repos:
         name: flake8 only __init__.py
         args: ["--extend-ignore=F401"] # ignore unused imports in __init__.py
         files: /__init__\.py$
-        additional_dependencies: ["flake8-bugbear==20.1.4"]
+        additional_dependencies: ["flake8-bugbear==21.11.29"]
   - repo: https://github.com/pycqa/pylint
-    rev: pylint-2.5.3
+    rev: v2.11.1
     hooks:
       - id: pylint
         name: pylint with optional checks
@@ -114,18 +111,18 @@ repos:
           - --exit-zero
         verbose: true
         additional_dependencies:
-          - isort==4.3.21
-          - pylint-odoo==3.6.0
+          - isort==5.10.1
+          - pylint-odoo==5.0.4
       - id: pylint
         name: pylint with mandatory checks
         args:
           - --valid_odoo_versions={{ "%.1f"|format(odoo_version) }}
           - --rcfile=.pylintrc-mandatory
         additional_dependencies:
-          - isort==4.3.21
-          - pylint-odoo==3.6.0
+          - isort==5.10.1
+          - pylint-odoo==5.0.4
   - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: v7.8.1
+    rev: v8.5.0
     hooks:
       - id: eslint
         verbose: true
