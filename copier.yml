@@ -34,6 +34,7 @@ _exclude:
   - /vendor
   - /**/.empty
   - /tasks_downstream.py
+  - "!/.github/workflows/*.jinja"
 
 _skip_if_exists:
   - odoo/custom/dependencies/*.txt
@@ -221,8 +222,8 @@ postgres_password:
   help: >-
     What will be your postgres user password?
 
-github_actions_test:
+github_actions:
   type: bool
   default: true
   help: >-
-    Automatically create GitHub Actions for running tests on Pull Request?
+    Automatically create GitHub Actions for running tests and building images?
