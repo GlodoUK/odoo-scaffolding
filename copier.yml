@@ -15,7 +15,6 @@ _exclude:
   - _macros
   - _traefik*_labels.yml
   - /.git
-  - /.github
   - /.gitmodules
   - /.vscode/launch.json
   - /.vscode/settings.json
@@ -34,7 +33,6 @@ _exclude:
   - /vendor
   - /**/.empty
   - /tasks_downstream.py
-  - "!/.github/workflows/*"
 
 _skip_if_exists:
   - odoo/custom/dependencies/*.txt
