@@ -34,7 +34,7 @@ _exclude:
   - /vendor
   - /**/.empty
   - /tasks_downstream.py
-  - "!/.github/workflows/*.jinja"
+  - "!/.github/workflows"
 
 _skip_if_exists:
   - odoo/custom/dependencies/*.txt
