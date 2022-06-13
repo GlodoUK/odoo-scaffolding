@@ -15,7 +15,6 @@ _exclude:
   - _macros
   - _traefik*_labels.yml
   - /.git
-  - /.github
   - /.gitmodules
   - /.vscode/launch.json
   - /.vscode/settings.json
@@ -220,3 +219,9 @@ postgres_password:
   type: str
   help: >-
     What will be your postgres user password?
+
+github_actions:
+  type: bool
+  default: true
+  help: >-
+    Automatically create GitHub Actions for running tests and building images?

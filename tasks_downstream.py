@@ -1119,3 +1119,53 @@ def down(c, purge=False):
         cmd += " --remove-orphans --rmi local --volumes"
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd)
+
+
+@task(develop, help={"base": "Any valid tree-ish to compare against"})
+def test_changed(c, base=None):
+    """
+    Automatically run unit tests for changed modules.
+    """
+    private_path = SRC_PATH / "private"
+    import subprocess
+
+    if not base:
+        base = "origin/HEAD"
+
+    git_output = (
+        subprocess.check_output(
+            [
+                "git",
+                "diff-index",
+                "--name-only",
+                base,
+                "--",
+                private_path,
+            ]
+        )
+        .decode("utf-8")
+        .split("\n")
+    )
+
+    todo = set(
+        map(
+            # Extract just the directory name from our against_path
+            # These should just be Odoo modules by default
+            lambda p: Path(p).parts[4:5][0],
+            filter(
+                # Remove False-y values and only directories within our against
+                # path
+                lambda p: p and os.path.isdir(os.path.join(*Path(p).parts[0:5])),
+                git_output,
+            ),
+        )
+    )
+
+    if not todo:
+        # pylint: disable=print-used
+        print("No changed modules found")
+        return
+
+    # pylint: disable=print-used
+    print("Running tests for modules: %s" % (todo,))
+    return test(c, modules=",".join(todo))
