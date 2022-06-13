@@ -1,7 +1,7 @@
 name: CI
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: {% raw %}ci-${{ github.ref }}{% endraw %}
   cancel-in-progress: true
 
 on:
@@ -97,4 +97,4 @@ jobs:
 
       - name: Run tests
         run: |
-          invoke test-changed -b "origin/${{ github.base_ref }}"
+          {% raw %}invoke test-changed -b "origin/${{ github.base_ref }}"{% endraw %}
