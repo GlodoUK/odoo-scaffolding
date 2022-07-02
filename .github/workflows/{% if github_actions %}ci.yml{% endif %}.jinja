@@ -4,14 +4,13 @@ name: CI
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+{%- endraw %}
 
 on:
   pull_request:
-    branches:
-      - master
-      - develop
-      - main
+    branches: {{ github_actions_ci_branches | tojson }}
 
+{% raw %}
 jobs:
   changes:
     runs-on: ubuntu-latest
