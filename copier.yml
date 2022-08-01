@@ -1,6 +1,7 @@
 # Configure jinja2 defaults to make syntax highlighters lives easier
 _templates_suffix: .jinja
 _envops:
+  autoescape: false
   block_end_string: "%}"
   block_start_string: "{%"
   comment_end_string: "#}"
@@ -10,7 +11,7 @@ _envops:
   variable_start_string: "{{"
 
 # Other Copier configurations
-_min_copier_version: "4.1.0"
+_min_copier_version: "6.1.0"
 _exclude:
   - _macros
   - _traefik*_labels.yml
@@ -120,18 +121,6 @@ odoo_initial_lang:
 
     Examples: en_US, es_ES, es_VE...
 
-odoo_admin_password:
-  secret: true
-  default: example-admin-password
-  type: str
-  help: >-
-    💡 To auto-generate strong passwords, see https://ddg.gg/?q=password+64+strong
-
-    ⚠️ This password is critical for security, especially if you set odoo_listdb to
-    true, so keep it safe.
-
-    What will be your odoo admin password?
-
 odoo_listdb:
   default: false
   type: bool
@@ -146,7 +135,7 @@ odoo_oci_image:
     project, specify here the path to the odoo image built with it. Leave it empty if
     you are not using a registry.
 
-    Example: docker.io/myteam/example-odoo
+    Example: glodouk/myproject-odoo
 
 project_author:
   type: str
@@ -154,7 +143,7 @@ project_author:
     Tell me who you are.
 
     If private modules do not include this author, pylint will warn you.
-  default: Glodo
+  default: Glo Networks
 
 project_name:
   type: str
@@ -225,3 +214,10 @@ github_actions:
   default: true
   help: >-
     Automatically create GitHub Actions for running tests and building images?
+
+github_actions_ci_branches:
+  type: yaml
+  multiline: true
+  placeholder: |
+    - main
+    - master
