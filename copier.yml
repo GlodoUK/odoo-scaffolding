@@ -127,6 +127,11 @@ odoo_listdb:
   help: >-
     Do you want to list databases publicly?
 
+project_customer:
+  type: str
+  help: >-
+    Tell me who the customer is.
+
 project_author:
   type: str
   help: >-
@@ -142,7 +147,7 @@ project_name:
 
     Do not use dots or spaces in the name; just "A-Za-z0-9-_" please in the format
     <name>-odoo.
-  default: myproject-odoo
+  default: "{{ project_customer }}-odoo"
 
 project_license:
   help: >-
