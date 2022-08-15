@@ -219,11 +219,25 @@ github_actions:
   type: bool
   default: true
   help: >-
-    Automatically create GitHub Actions for running tests and building images?
+    Create GitHub Actions for running tests and building images?
+
+github_actions_build_prod:
+  type: bool
+  default: true
+  help: >-
+    Create GitHub Actions for building production images?
+  when: &github_actions "{{ github_actions == true }}"
+
+github_actions_build_dev:
+  type: bool
+  default: true
+  help: >-
+    Create GitHub Actions for building test images?
+  when: *github_actions
 
 github_actions_ci_branches:
   type: yaml
   multiline: true
-  placeholder: |
-    - main
-    - master
+  placeholder: >-
+    ["dev-{{ odoo_version }}", "{{ odoo_version }}"]
+  when: *github_actions
