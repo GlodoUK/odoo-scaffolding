@@ -147,7 +147,7 @@ project_name:
 
     Do not use dots or spaces in the name; just "A-Za-z0-9-_" please in the format
     <name>-odoo.
-  default: "{{ project_customer }}-odoo"
+  default: "{{ project_customer | lower }}-odoo"
 
 project_license:
   help: >-
@@ -178,7 +178,7 @@ odoo_oci_image:
     you are not using a registry.
 
     Example: glodouk/myproject-odoo
-  default: "glodouk/{{ project_name }}"
+  default: "glodouk/{{ project_name | lower }}"
 
 postgres_version:
   default: "13"
@@ -238,6 +238,8 @@ github_actions_build_dev:
 github_actions_ci_branches:
   type: yaml
   multiline: true
+  help: >-
+    Create GitHub actions for checking pre-commit and running tests on the following branches?
   placeholder: >-
     ["dev-{{ odoo_version }}", "{{ odoo_version }}"]
   when: *github_actions
