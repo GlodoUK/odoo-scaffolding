@@ -127,16 +127,6 @@ odoo_listdb:
   help: >-
     Do you want to list databases publicly?
 
-odoo_oci_image:
-  type: str
-  help: >-
-    If you are using an OCI/Docker image registry (such as the Docker Hub, Quay or
-    Gitlab registry) to publish the Odoo images that will be built with this Doodba
-    project, specify here the path to the odoo image built with it. Leave it empty if
-    you are not using a registry.
-
-    Example: glodouk/myproject-odoo
-
 project_author:
   type: str
   help: >-
@@ -173,6 +163,17 @@ project_license:
     MIT license: MIT
     Odoo Enterprise Edition License v1.0: OEEL-1.0
     Odoo Proprietary License v1.0: OPL-1.0
+
+odoo_oci_image:
+  type: str
+  help: >-
+    If you are using an OCI/Docker image registry (such as the Docker Hub, Quay or
+    Gitlab registry) to publish the Odoo images that will be built with this Doodba
+    project, specify here the path to the odoo image built with it. Leave it empty if
+    you are not using a registry.
+
+    Example: glodouk/myproject-odoo
+  default: "glodouk/{{ project_name }}"
 
 postgres_version:
   default: "13"
