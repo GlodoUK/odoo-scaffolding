@@ -104,6 +104,7 @@ odoo_version:
     - 13.0
     - 14.0
     - 15.0
+    - 16.0
 
 odoo_dbfilter:
   default: ".*"
@@ -191,6 +192,7 @@ postgres_version:
     "11": "11"
     "12": "12"
     "13": "13"
+    "14": "14"
 
 postgres_username:
   type: str
@@ -239,7 +241,8 @@ github_actions_ci_branches:
   type: yaml
   multiline: true
   help: >-
-    Create GitHub actions for checking pre-commit and running tests on the following branches?
+    Create GitHub actions for checking pre-commit and running tests on the following
+    branches?
   placeholder: >-
     ["dev-{{ odoo_version }}", "{{ odoo_version }}"]
   when: *github_actions
