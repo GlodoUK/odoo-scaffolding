@@ -975,13 +975,10 @@ def restore_snapshot(
 
 
 @task(develop)
-def stopstart(c, detach=True, ptvsd=False):
-    """Stop the environment."""
-    cmd = "docker-compose stop && docker-compose up"
-    if detach:
-        cmd += " --detach"
-    with c.cd(str(PROJECT_ROOT)):
-        c.run(cmd, env=dict(UID_ENV, DOODBA_PTVSD_ENABLE=str(int(ptvsd))))
+def stopstart(c, purge=False, detach=True, debugpy=False):
+    """Stop the environment, then start it again"""
+    stop(c, purge)
+    start(c, detach, debugpy)
 
 
 @task(develop)
@@ -1011,6 +1008,13 @@ def shell(c, db=None, native=True):
     if db:
         cmd += f" -d {db}"
 
+    c.run(cmd, pty=True)
+
+
+@task(develop)
+def bash(c):
+    """Get a bash shell in the Odoo container"""
+    cmd = "docker-compose exec odoo bash"
     c.run(cmd, pty=True)
 
 
