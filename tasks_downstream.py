@@ -977,7 +977,10 @@ def restore_snapshot(
 @task(develop)
 def stopstart(c, purge=False, detach=True, debugpy=False):
     """Stop the environment, then start it again"""
-    stop(c, purge)
+    if purge:
+        stop(c, purge)
+    else:
+        c.run("docker-compose stop", pty=True)
     start(c, detach, debugpy)
 
 
