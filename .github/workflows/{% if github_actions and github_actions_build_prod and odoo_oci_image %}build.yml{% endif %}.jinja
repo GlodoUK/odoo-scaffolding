@@ -1,5 +1,9 @@
 {% import "_macros.jinja" as macros -%}
-name: Build {{ macros.version_minor(odoo_version) }} (Production)
+name: build {{ macros.version_minor(odoo_version) }}
+
+concurrency:
+  group: update-cache-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   workflow_dispatch:
