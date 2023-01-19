@@ -1,9 +1,11 @@
 {% import "_macros.jinja" as macros -%}
 name: build dev-{{ macros.version_minor(odoo_version) }}
 
+{%- raw %}
 concurrency:
-  group: update-cache-${{ github.ref }}
+  group: build-dev-${{ github.ref }}
   cancel-in-progress: true
+{%- endraw %}
 
 on:
   workflow_dispatch:
