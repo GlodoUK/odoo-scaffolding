@@ -1069,7 +1069,7 @@ def add_glodouk_repo(c, customer, target_repo, yaml_alias=None):
     },
 )
 def add_github_repository(c, organisation, repository, yaml_alias=None, private=False):
-    target_repo = f"{organisation}_{repository}"
+    target_repo = f"{organisation}_{repository}".lower()
     repo_domain = "github.com"
     ssh_key = None
 
@@ -1117,10 +1117,10 @@ def add_github_repository(c, organisation, repository, yaml_alias=None, private=
                 f"./{yaml_alias}": {
                     "default": {"depth": "$DEPTH_DEFAULT"},
                     "remotes": {
-                        f"{organisation}": "git@{repo_domain}:{organisation}/{repository}.git"
+                        f"{organisation.lower()}": f"git@{repo_domain}:{organisation}/{repository}.git"
                     },
-                    "target": f"{organisation} $ODOO_VERSION",
-                    "merges": [f"{organisation} $ODOO_VERSION"],
+                    "target": f"{organisation.lower()} $ODOO_VERSION",
+                    "merges": [f"{organisation.lower()} $ODOO_VERSION"],
                 }
             }
         )
