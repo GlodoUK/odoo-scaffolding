@@ -7,7 +7,6 @@ Contains common helpers to develop using this child project.
 import json
 import os
 import stat
-import sys
 import tempfile
 import time
 from datetime import datetime
@@ -38,7 +37,7 @@ _logger = getLogger(__name__)
 def _override_docker_command(service, command, file, orig_file=None):
     # Read config from main file
     if orig_file:
-        with open(orig_file, "r") as fd:
+        with open(orig_file) as fd:
             orig_docker_config = yaml.safe_load(fd.read())
             docker_compose_file_version = orig_docker_config.get("version")
     else:
@@ -53,7 +52,7 @@ def _override_docker_command(service, command, file, orig_file=None):
 
 
 def _remove_auto_reload(file, orig_file):
-    with open(orig_file, "r") as fd:
+    with open(orig_file) as fd:
         orig_docker_config = yaml.safe_load(fd.read())
     odoo_command = orig_docker_config["services"]["odoo"]["command"]
     new_odoo_command = []
@@ -422,6 +421,13 @@ def git_aggregate(c):
         )
         with c.cd(str(git_folder)):
             c.run(f"pre-commit {action}")
+
+
+@task(develop)
+def closed_prs(c):
+    with c.cd(str(PROJECT_ROOT / "odoo/custom/src")):
+        cmd = "gitaggregate -c {} show-closed-prs".format("repos.yaml")
+        c.run(cmd, env=UID_ENV, pty=True)
 
 
 @task(develop)
@@ -969,13 +975,13 @@ def restore_snapshot(
 
 
 @task(develop)
-def stopstart(c, detach=True, ptvsd=False):
-    """Stop the environment."""
-    cmd = "docker-compose stop && docker-compose up"
-    if detach:
-        cmd += " --detach"
-    with c.cd(str(PROJECT_ROOT)):
-        c.run(cmd, env=dict(UID_ENV, DOODBA_PTVSD_ENABLE=str(int(ptvsd))))
+def stopstart(c, purge=False, detach=True, debugpy=False):
+    """Stop the environment, then start it again"""
+    if purge:
+        stop(c, purge)
+    else:
+        c.run("docker-compose stop", pty=True)
+    start(c, detach, debugpy)
 
 
 @task(develop)
@@ -1009,6 +1015,13 @@ def shell(c, db=None, native=True):
 
 
 @task(develop)
+def bash(c):
+    """Get a bash shell in the Odoo container"""
+    cmd = "docker-compose exec odoo bash"
+    c.run(cmd, pty=True)
+
+
+@task(develop)
 def scaffold(c, name):
     """Create a scaffold using Odoo's built in scaffolding"""
     custom_path = PROJECT_ROOT / "odoo" / "custom"
@@ -1034,16 +1047,6 @@ def upgrade(c, db=None, include_core=False):
     c.run(cmd, pty=True)
 
 
-@task(develop)
-def tests(c, db, install):
-    """Run the unit tests for a module"""
-
-    # pylint: disable=print-used
-    print(
-        "Please use the `test` task instead. This has been superseded.", file=sys.stderr
-    )
-
-
 @task(
     develop,
     help={
@@ -1053,59 +1056,98 @@ def tests(c, db, install):
     },
 )
 def add_glodouk_repo(c, customer, target_repo, yaml_alias=None):
-    cmd_key = (
-        f"ssh-keygen -t ed25519 -C '{customer}' -N '' -f"
-        f" odoo/custom/ssh/glodouk_{target_repo}_ed25519"
-    )
+    return add_github_repository(c, "GlodoUK", target_repo, yaml_alias, True)
 
-    # Create the key
-    c.run(cmd_key, pty=True)
 
-    # TODO: Make this more sensible and automatically check if this exists,
-    # if odoo/custom/ssh/config, etc.
-    ssh_config = (
-        f"\nHost glodouk_{target_repo}.github.com\n"
-        f"    HostName github.com\n"
-        f"    User git\n"
-        f"    IdentityFile ~/.ssh/glodouk_{target_repo}_ed25519\n"
-        f"    IdentitiesOnly yes\n"
-        f"    StrictHostKeyChecking no"
-    )
+@task(
+    develop,
+    help={
+        "organisation": "The github organisation or username i.e. glodouk, or oca",
+        "repository": "The repository name i.e. edi, or enterprise",
+        "yaml_alias": "The alias to use in the yaml file. Optional.",
+        "private": "Is this a private repo?",
+    },
+)
+def add_github_repository(c, organisation, repository, yaml_alias=None, private=False):
+    target_repo = f"{organisation}_{repository}"
+    repo_domain = "github.com"
+    ssh_key = None
 
-    cmd_config = f"echo '{ssh_config}' >> odoo/custom/ssh/config"
+    if private:
+        repo_domain = f"{target_repo}.github.com"
+        ssh_key = f"odoo/custom/ssh/{target_repo}_ed25519"
 
-    # Append Config
-    c.run(cmd_config, pty=True)
+        if os.path.exists(ssh_key):
+            raise FileExistsError(f"{ssh_key} already exists")
 
-    repo_alias = f"glodouk_{target_repo}"
-    if yaml_alias:
-        repo_alias = yaml_alias
+        cmd_key = (
+            f"ssh-keygen -t ed25519 -N '' -f" f" odoo/custom/ssh/{target_repo}_ed25519"
+        )
 
-    repo_str = (
-        f"\n./{repo_alias}:\n"
-        f"  defaults:\n"
-        f"    depth: $DEPTH_DEFAULT\n"
-        f"  remotes:\n"
-        f"    glodo: git@glodouk_{target_repo}.github.com:GlodoUK/{target_repo}.git\n"
-        f"  target: glodo $ODOO_VERSION\n"
-        f"  merges:\n"
-        f"    - glodo $ODOO_VERSION"
-    )
+        # Create the key
+        c.run(cmd_key, pty=True)
 
-    cmd_repo = f"echo '{repo_str}' >> odoo/custom/src/repos.yaml"
+        with open(PROJECT_ROOT / "odoo" / "custom" / "ssh" / "config", "a+") as f:
+            f.seek(0)
 
-    c.run(cmd_repo, pty=True)
+            if f"Host {repo_domain}" in f.read():
+                raise FileExistsError(f"{repo_domain} already appears in ssh/config?")
 
-    addons_str = f'{repo_alias}: ["*"]'
+            ssh_config = (
+                f"\nHost {repo_domain}\n"
+                f"    HostName github.com\n"
+                f"    User git\n"
+                f"    IdentityFile ~/.ssh/{target_repo}_ed25519\n"
+                f"    IdentitiesOnly yes\n"
+                f"    StrictHostKeyChecking no"
+            )
 
-    # TODO: Check if already exists before appending
-    cmd_addons = f"echo '{addons_str}' >> odoo/custom/src/addons.yaml"
+            f.write(ssh_config)
 
-    with c.cd(str(PROJECT_ROOT)):
-        c.run(cmd_addons, pty=True)
+    if not yaml_alias:
+        yaml_alias = target_repo
+
+    with open(SRC_PATH / "repos.yaml", "r+") as f:
+        repos = yaml.safe_load(f.read())
+        if f"./{yaml_alias}" in repos:
+            raise FileExistsError(f"{yaml_alias} already in repos.yaml")
+
+        repos.update(
+            {
+                f"./{yaml_alias}": {
+                    "default": {"depth": "$DEPTH_DEFAULT"},
+                    "remotes": {
+                        f"{organisation}": "git@{repo_domain}:{organisation}/{repository}.git"
+                    },
+                    "target": f"{organisation} $ODOO_VERSION",
+                    "merges": [f"{organisation} $ODOO_VERSION"],
+                }
+            }
+        )
+
+        f.seek(0)
+        f.write(yaml.dump(repos))
+        f.truncate()
+
+    with open(SRC_PATH / "addons.yaml", "r+") as f:
+        addons = yaml.safe_load(f.read())
+        if f"{yaml_alias}" in addons:
+            raise FileExistsError(f"{yaml_alias} already in repos.yaml")
+
+        addons.update({f"./{yaml_alias}": ["*"]})
+
+        f.seek(0)
+        f.write(yaml.dump(addons))
+        f.truncate()
+
+    if private and ssh_key:
+        # pylint: disable=print-used
+        print(
+            f"Please now add the new SSH key {ssh_key} to the repo {organisation}/{repository}"
+        )
 
     # pylint: disable=print-used
-    print(f"Please now add the new SSH key to the repo {target_repo}")
+    print("Please run git-aggregate")
 
 
 @task(

@@ -104,6 +104,7 @@ odoo_version:
     - 13.0
     - 14.0
     - 15.0
+    - 16.0
 
 odoo_dbfilter:
   default: ".*"
@@ -127,15 +128,10 @@ odoo_listdb:
   help: >-
     Do you want to list databases publicly?
 
-odoo_oci_image:
+project_customer:
   type: str
   help: >-
-    If you are using an OCI/Docker image registry (such as the Docker Hub, Quay or
-    Gitlab registry) to publish the Odoo images that will be built with this Doodba
-    project, specify here the path to the odoo image built with it. Leave it empty if
-    you are not using a registry.
-
-    Example: glodouk/myproject-odoo
+    Tell me who the customer is.
 
 project_author:
   type: str
@@ -152,7 +148,7 @@ project_name:
 
     Do not use dots or spaces in the name; just "A-Za-z0-9-_" please in the format
     <name>-odoo.
-  default: myproject-odoo
+  default: "{{ project_customer | lower }}-odoo"
 
 project_license:
   help: >-
@@ -174,6 +170,17 @@ project_license:
     Odoo Enterprise Edition License v1.0: OEEL-1.0
     Odoo Proprietary License v1.0: OPL-1.0
 
+odoo_oci_image:
+  type: str
+  help: >-
+    If you are using an OCI/Docker image registry (such as the Docker Hub, Quay or
+    Gitlab registry) to publish the Odoo images that will be built with this Doodba
+    project, specify here the path to the odoo image built with it. Leave it empty if
+    you are not using a registry.
+
+    Example: glodouk/myproject-odoo
+  default: "glodouk/{{ project_name | lower }}"
+
 postgres_version:
   default: "13"
   help: >-
@@ -185,6 +192,7 @@ postgres_version:
     "11": "11"
     "12": "12"
     "13": "13"
+    "14": "14"
 
 postgres_username:
   type: str
@@ -213,11 +221,28 @@ github_actions:
   type: bool
   default: true
   help: >-
-    Automatically create GitHub Actions for running tests and building images?
+    Create GitHub Actions for running tests and building images?
+
+github_actions_build_prod:
+  type: bool
+  default: true
+  help: >-
+    Create GitHub Actions for building production images?
+  when: &github_actions "{{ github_actions == true }}"
+
+github_actions_build_dev:
+  type: bool
+  default: true
+  help: >-
+    Create GitHub Actions for building test images?
+  when: *github_actions
 
 github_actions_ci_branches:
   type: yaml
   multiline: true
-  placeholder: |
-    - main
-    - master
+  help: >-
+    Create GitHub actions for checking pre-commit and running tests on the following
+    branches?
+  placeholder: >-
+    ["dev-{{ odoo_version }}", "{{ odoo_version }}"]
+  when: *github_actions

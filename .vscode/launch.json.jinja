@@ -1,3 +1,4 @@
+{%- import "../_macros.jinja" as macros -%}
 {
   // More info on this file: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
@@ -20,6 +21,20 @@
       "console": "integratedTerminal",
       "justMyCode": false,
       "subProcess": true
+    },
+    {
+      "name": "Debug Odoo",
+      "type": "python",
+      "request": "attach",
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceRoot}/odoo",
+          "remoteRoot": "/opt/odoo"
+        }
+      ],
+      "port": {{ macros.version_major(odoo_version) }}899,
+      "host": "localhost",
+      "preLaunchTask": "invoke stopstart"
     }
   ]
 }

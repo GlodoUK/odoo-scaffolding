@@ -15,26 +15,22 @@
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
 
-#./enterprise:
-#  defaults:
-#    depth: $DEPTH_DEFAULT
-#  remotes:
-#    # You must add a project access token, this repository is not publicly available.
-#    # Please create a specific access token for this project.
-#    odoo: git@hostname-in-config:GlodoUK/enterprise.git
-#  target: odoo $ODOO_VERSION
-#  merges:
-#    - odoo $ODOO_VERSION
-#    # Example of a merge of the PR with the number <PR>
-#    # - oca refs/pull/<PR>/head
-#
+# OCA stock logistics workflow includes the critical module stock_no_negative
+./oca_stock-logistics-workflow:
+  defaults:
+    depth: $DEPTH_DEFAULT
+  remotes:
+    odoo: https://github.com/OCA/stock-logistics-workflow.git
+  target: odoo $ODOO_VERSION
+  merges:
+    - odoo $ODOO_VERSION
 
 # OCA web contains many useful modules, such as web_refresher
-#./oca_web:
-#  defaults:
-#    depth: $DEPTH_DEFAULT
-#  remotes:
-#    odoo: https://github.com/OCA/web.git
-#  target: odoo $ODOO_VERSION
-#  merges:
-#    - odoo $ODOO_VERSION
+./oca_web:
+  defaults:
+    depth: $DEPTH_DEFAULT
+  remotes:
+    odoo: https://github.com/OCA/web.git
+  target: odoo $ODOO_VERSION
+  merges:
+    - odoo $ODOO_VERSION
