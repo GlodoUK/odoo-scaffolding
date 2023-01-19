@@ -148,7 +148,9 @@ project_name:
 
     Do not use dots or spaces in the name; just "A-Za-z0-9-_" please in the format
     <name>-odoo.
-  default: "{{ project_customer | lower }}-odoo"
+  default:
+    "{{ project_customer | lower | replace(' ', '-') | replace('\\', '_') | replace('/',
+    '_') }}-odoo"
 
 project_license:
   help: >-
@@ -244,5 +246,5 @@ github_actions_ci_branches:
     Create GitHub actions for checking pre-commit and running tests on the following
     branches?
   placeholder: >-
-    ["dev-{{ odoo_version }}", "{{ odoo_version }}"]
+    ["dev-{{ odoo_version }}"]
   when: *github_actions
