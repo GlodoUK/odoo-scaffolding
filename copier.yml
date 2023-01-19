@@ -149,8 +149,7 @@ project_name:
     Do not use dots or spaces in the name; just "A-Za-z0-9-_" please in the format
     <name>-odoo.
   default:
-    "{{ project_customer | lower | replace(' ', '-') | replace('\\', '_') | replace('/',
-    '_') }}-odoo"
+    "{{ project_customer | lower | replace(' ', '-') | replace('\\', '_') | replace('/', '_') }}-odoo"
 
 project_license:
   help: >-
