@@ -1,20 +1,19 @@
 {% import "_macros.jinja" as macros -%}
-name: build dev-{{ macros.version_minor(odoo_version) }}
+name: build {{ macros.version_minor(odoo_version) }}
 
 {%- raw %}
 concurrency:
-  group: build-dev-${{ github.ref }}
+  group: build-${{ github.ref }}
   cancel-in-progress: true
 {%- endraw %}
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - "dev-{{ macros.version_minor(odoo_version) }}"
+    branches: {{ github_actions_build_branches | tojson }}
     paths:
       - "odoo/**"
-      - ".github/workflows/build-dev.yaml"
+      - ".github/workflows/build.yaml"
 
 env:
   ODOO_VERSION: "{{ macros.version_minor(odoo_version) }}"
@@ -39,15 +38,14 @@ jobs:
           username: {% raw %}${{ secrets.DOCKER_HUB_USER }}{% endraw %}
           password: {% raw %}${{ secrets.DOCKER_HUB_TOKEN }}{% endraw %}
 
-      - name: Get current date
-        id: date
-        run: |
-          echo "date=$(date +%s)" >> $GITHUB_OUTPUT
-
-      - name: Get short SHA
-        id: sha
-        run: |
-          echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - name: Generate Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            {{ odoo_oci_image }}
+          tags: |
+            {% raw %}type=raw,value={{ branch }}-{{ date 'X' tz='UTC' }}{% endraw %}
 
       - name: Build and push
         uses: docker/build-push-action@v3
@@ -58,5 +56,5 @@ jobs:
           push: true
           build-args: |
             ODOO_VERSION={% raw %}${{ env.ODOO_VERSION }}{% endraw %}
-          tags: |
-            {{ odoo_oci_image }}:{% raw %}${{ env.ODOO_VERSION }}-${{ steps.sha.outputs.short }}-${{ steps.date.outputs.date }}{% endraw %}
+          tags: {% raw %}${{ steps.meta.outputs.tags }}{% endraw %}
+          labels: {% raw %}${{ steps.meta.outputs.labels }}{% endraw %}

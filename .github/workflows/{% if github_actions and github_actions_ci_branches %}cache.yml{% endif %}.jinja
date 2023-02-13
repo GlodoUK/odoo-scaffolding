@@ -12,12 +12,14 @@ name: update cache
 concurrency:
   group: update-cache-${{ github.ref }}
   cancel-in-progress: true
+{% endraw %}
 
 on:
   workflow_dispatch:
   push:
     branches: {{ github_actions_ci_branches | tojson }}
 
+{%- raw %}
 jobs:
   update-cache:
     runs-on: ubuntu-latest

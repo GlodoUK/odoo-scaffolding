@@ -148,8 +148,7 @@ project_name:
 
     Do not use dots or spaces in the name; just "A-Za-z0-9-_" please in the format
     <name>-odoo.
-  default:
-    "{{ project_customer|lower|replace(' ','-') }}-odoo"
+  default: "{{ project_customer|lower|replace(' ','-') }}-odoo"
 
 project_license:
   help: >-
@@ -224,18 +223,21 @@ github_actions:
   help: >-
     Create GitHub Actions for running tests and building images?
 
-github_actions_build_prod:
+github_actions_build:
   type: bool
-  default: true
   help: >-
-    Create GitHub Actions for building production images?
+    Create GitHub Actions for building images?
+  default: >-
+    ["{{ odoo_version }}"]
   when: &github_actions "{{ github_actions == true }}"
 
-github_actions_build_dev:
-  type: bool
-  default: true
+github_actions_build_branches:
+  type: yaml
+  multiline: true
   help: >-
-    Create GitHub Actions for building test images?
+    Create GitHub actions for building docker images on the following branches?
+  default: >-
+    ["{{ odoo_version }}"]
   when: *github_actions
 
 github_actions_ci_branches:
@@ -244,6 +246,6 @@ github_actions_ci_branches:
   help: >-
     Create GitHub actions for checking pre-commit and running tests on the following
     branches?
-  placeholder: >-
-    ["dev-{{ odoo_version }}"]
+  default: >-
+    ["{{ odoo_version }}"]
   when: *github_actions
