@@ -1117,7 +1117,7 @@ def add_github_repository(c, organisation, repository, yaml_alias=None, private=
                 f"./{yaml_alias}": {
                     "default": {"depth": "$DEPTH_DEFAULT"},
                     "remotes": {
-                        f"{organisation.lower()}": f"git@{repo_domain}:{organisation}/{repository}.git"
+                        f"{organisation.lower()}": f"git@{repo_domain}:{organisation}/{repository}.git"  # noqa: B950
                     },
                     "target": f"{organisation.lower()} $ODOO_VERSION",
                     "merges": [f"{organisation.lower()} $ODOO_VERSION"],
