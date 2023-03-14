@@ -9,7 +9,6 @@ import os
 import stat
 import tempfile
 import time
-from datetime import datetime
 from itertools import chain
 from logging import getLogger
 from pathlib import Path
@@ -425,8 +424,12 @@ def git_aggregate(c):
 
 @task(develop)
 def closed_prs(c):
-    with c.cd(str(PROJECT_ROOT / "odoo/custom/src")):
-        cmd = "gitaggregate -c {} show-closed-prs".format("repos.yaml")
+    with c.cd(str(PROJECT_ROOT)):
+        cmd = (
+            "docker-compose --file setup-devel.yaml run --rm --no-deps"
+            ' --entrypoint="gitaggregate -c /opt/odoo/custom/src/repos.yaml'
+            ' show-closed-prs" odoo'
+        )
         c.run(cmd, env=UID_ENV, pty=True)
 
 
@@ -441,13 +444,6 @@ def img_build(c, pull=True):
 
 
 @task(develop)
-def img_pull(c):
-    """Pull docker images."""
-    with c.cd(str(PROJECT_ROOT)):
-        c.run("docker-compose pull", pty=True)
-
-
-@task(develop)
 def lint(c, verbose=False):
     """Lint & format source code."""
     cmd = "pre-commit run --show-diff-on-failure --all-files --color=always"
@@ -457,7 +453,7 @@ def lint(c, verbose=False):
         c.run(cmd)
 
 
-@task(develop)
+@task()
 def start(c, detach=True, debugpy=False):
     """Start environment."""
     cmd = "docker-compose up"
@@ -551,35 +547,6 @@ def install(
         )
 
 
-def _get_module_dependencies(
-    c, modules=None, core=False, extra=False, private=False, enterprise=False
-):
-    """Returns a list of the addons' dependencies
-
-    By default, refers to the addon from directory being worked on,
-    unless other options are specified.
-    """
-    # Get list of dependencies for addon
-    cmd = "docker-compose run --rm odoo addons list --dependencies"
-    if core:
-        cmd += " --core"
-    if extra:
-        cmd += " --extra"
-    if private:
-        cmd += " --private"
-    if enterprise:
-        cmd += " --enterprise"
-    if modules:
-        cmd += f" -w {modules}"
-    with c.cd(str(PROJECT_ROOT)):
-        dependencies = c.run(
-            cmd,
-            env=UID_ENV,
-            hide="stdout",
-        ).stdout.splitlines()[-1]
-    return dependencies
-
-
 def _test_in_debug_mode(c, odoo_command):
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".yaml"
@@ -646,7 +613,6 @@ def _get_module_list(
 
 
 @task(
-    develop,
     help={
         "modules": "Comma-separated list of modules to test.",
         "core": "Test all core addons. Default: False",
@@ -738,7 +704,6 @@ def test(
 
 
 @task(
-    develop,
     help={"purge": "Remove all related containers, networks images and volumes"},
 )
 def stop(c, purge=False):
@@ -750,85 +715,7 @@ def stop(c, purge=False):
         c.run(cmd, pty=True)
 
 
-@task(
-    develop,
-    help={
-        "dbname": "The DB that will be DESTROYED and recreated. Default: 'devel'.",
-        "modules": "Comma-separated list of modules to install. Default: 'base'.",
-        "core": "Install all core addons. Default: False",
-        "extra": "Install all extra addons. Default: False",
-        "private": "Install all private addons. Default: False",
-        "enterprise": "Install all enterprise addons. Default: False",
-        "populate": "Run preparedb task right after (only available for v11+)."
-        " Default: True",
-        "dependencies": "Install only the dependencies of the specified addons."
-        "Default: False",
-    },
-)
-def resetdb(
-    c,
-    modules=None,
-    core=False,
-    extra=False,
-    private=False,
-    enterprise=False,
-    dbname="devel",
-    populate=True,
-    dependencies=False,
-):
-    """Reset the specified database with the specified modules.
-
-    Uses click-odoo-initdb behind the scenes, which has a caching system that
-    makes DB resets quicker. See its docs for more info.
-    """
-    if dependencies:
-        modules = _get_module_dependencies(c, modules, core, extra, private, enterprise)
-    elif core or extra or private or enterprise:
-        modules = _get_module_list(c, modules, core, extra, private, enterprise)
-    else:
-        modules = modules or "base"
-    with c.cd(str(PROJECT_ROOT)):
-        c.run("docker-compose stop odoo", pty=True)
-        _run = "docker-compose run --rm -l traefik.enable=false odoo"
-        c.run(
-            f"{_run} click-odoo-dropdb {dbname}",
-            env=UID_ENV,
-            warn=True,
-            pty=True,
-        )
-        c.run(
-            f"{_run} click-odoo-initdb -n {dbname} -m {modules}",
-            env=UID_ENV,
-            pty=True,
-        )
-    if populate and ODOO_VERSION < 11:
-        _logger.warn(
-            "Skipping populate task as it is not available in v%s" % ODOO_VERSION
-        )
-        populate = False
-    if populate:
-        preparedb(c)
-
-
-@task(develop)
-def preparedb(c):
-    """Run the `preparedb` script inside the container
-
-    Populates the DB with some helpful config
-    """
-    if ODOO_VERSION < 11:
-        raise exceptions.PlatformError(
-            "The preparedb script is not available for Doodba environments bellow v11."
-        )
-    with c.cd(str(PROJECT_ROOT)):
-        c.run(
-            "docker-compose run --rm -l traefik.enable=false odoo preparedb",
-            env=UID_ENV,
-            pty=True,
-        )
-
-
-@task(develop)
+@task()
 def restart(c, quick=True):
     """Restart odoo container(s)."""
     cmd = "docker-compose restart"
@@ -840,7 +727,6 @@ def restart(c, quick=True):
 
 
 @task(
-    develop,
     help={
         "container": "Names of the containers from which logs will be obtained."
         " You can specify a single one, or several comma-separated names."
@@ -875,106 +761,7 @@ def after_update(c):
             script_file.chmod(cur_stat.st_mode | stat.S_IXUSR | stat.S_IXGRP)
 
 
-@task(
-    develop,
-    help={
-        "source_db": "The source DB name. Default: 'devel'.",
-        "destination_db": "The destination DB name. Default: '[SOURCE_DB_NAME]-[CURRENT_DATE]'",
-    },
-)
-def snapshot(
-    c,
-    source_db="devel",
-    destination_db=None,
-):
-    """Snapshot current database and filestore.
-
-    Uses click-odoo-copydb behind the scenes to make a snapshot.
-    """
-    if not destination_db:
-        destination_db = "%s-%s" % (
-            source_db,
-            datetime.now().strftime("%Y_%m_%d-%H_%M"),
-        )
-    with c.cd(str(PROJECT_ROOT)):
-        cur_state = c.run("docker-compose stop odoo db", pty=True).stdout
-        _logger.info("Snapshoting current %s DB to %s" % (source_db, destination_db))
-        _run = "docker-compose run --rm -l traefik.enable=false odoo"
-        c.run(
-            f"{_run} click-odoo-copydb {source_db} {destination_db}",
-            env=UID_ENV,
-            pty=True,
-        )
-        if "Stopping" in cur_state:
-            # Restart services if they were previously active
-            c.run("docker-compose start odoo db", pty=True)
-
-
-@task(
-    develop,
-    help={
-        "snapshot_name": "The snapshot name. If not provided,"
-        "the script will try to find the last snapshot"
-        " that starts with the destination_db name",
-        "destination_db": "The destination DB name. Default: 'devel'",
-    },
-)
-def restore_snapshot(
-    c,
-    snapshot_name=None,
-    destination_db="devel",
-):
-    """Restore database and filestore snapshot.
-
-    Uses click-odoo-copydb behind the scenes to restore a DB snapshot.
-    """
-    with c.cd(str(PROJECT_ROOT)):
-        cur_state = c.run("docker-compose stop odoo db", pty=True).stdout
-        if not snapshot_name:
-            # List DBs
-            res = c.run(
-                "docker-compose run --rm -e LOG_LEVEL=WARNING odoo psql -tc"
-                " 'SELECT datname FROM pg_database;'",
-                env=UID_ENV,
-                hide="stdout",
-            )
-            db_list = []
-            for db in res.stdout.splitlines():
-                # Parse and filter DB List
-                if not db.lstrip().startswith(destination_db):
-                    continue
-                db_name = db.lstrip()
-                try:
-                    db_date = datetime.strptime(
-                        db_name.lstrip(destination_db + "-"), "%Y_%m_%d-%H_%M"
-                    )
-                    db_list.append((db_name, db_date))
-                except ValueError:
-                    continue
-            snapshot_name = max(db_list, key=lambda x: x[1])[0]
-            if not snapshot_name:
-                raise exceptions.PlatformError(
-                    "No snapshot found for destination_db %s" % destination_db
-                )
-        _logger.info("Restoring snapshot %s to %s" % (snapshot_name, destination_db))
-        _run = "docker-compose run --rm -l traefik.enable=false odoo"
-        c.run(
-            f"{_run} click-odoo-dropdb {destination_db}",
-            env=UID_ENV,
-            warn=True,
-            pty=True,
-        )
-        c.run(
-            f"{_run} click-odoo-copydb {snapshot_name} {destination_db}",
-            env=UID_ENV,
-            pty=True,
-        )
-        if "Stopping" in cur_state:
-            # Restart services if they were previously active
-            c.run("docker-compose start odoo db", pty=True)
-
-
-@task(develop)
+@task()
 def stopstart(c, purge=False, detach=True, debugpy=False):
     """Stop the environment, then start it again"""
     if purge:
@@ -984,7 +771,7 @@ def stopstart(c, purge=False, detach=True, debugpy=False):
     start(c, detach, debugpy)
 
 
-@task(develop)
+@task()
 def psql(c, db=None):
     """Get an interactive psql shell"""
     cmd = f"docker-compose exec db psql -U {DB_USER}"
@@ -996,7 +783,7 @@ def psql(c, db=None):
     c.run(cmd, pty=True)
 
 
-@task(develop)
+@task()
 def shell(c, db=None, native=True):
     """
     Get an Odoo shell. By default it will use the native odoo shell, unless
@@ -1014,14 +801,14 @@ def shell(c, db=None, native=True):
     c.run(cmd, pty=True)
 
 
-@task(develop)
+@task()
 def bash(c):
     """Get a bash shell in the Odoo container"""
     cmd = "docker-compose exec odoo bash"
     c.run(cmd, pty=True)
 
 
-@task(develop)
+@task()
 def scaffold(c, name):
     """Create a scaffold using Odoo's built in scaffolding"""
     custom_path = PROJECT_ROOT / "odoo" / "custom"
@@ -1032,7 +819,7 @@ def scaffold(c, name):
     c.run(cmd)
 
 
-@task(develop)
+@task()
 def upgrade(c, db=None, include_core=False):
     """
     Upgrade all Odoo addons
@@ -1045,18 +832,6 @@ def upgrade(c, db=None, include_core=False):
     if db:
         cmd += f" -d {db}"
     c.run(cmd, pty=True)
-
-
-@task(
-    develop,
-    help={
-        "customer": "Customer or reference to use on the SSH key",
-        "target_repo": "The repository name i.e. edi, or enterprise",
-        "yaml_alias": "The alias to use in the yaml file. Optional.",
-    },
-)
-def add_glodouk_repo(c, customer, target_repo, yaml_alias=None):
-    return add_github_repository(c, "GlodoUK", target_repo, yaml_alias, True)
 
 
 @task(
@@ -1151,7 +926,6 @@ def add_github_repository(c, organisation, repository, yaml_alias=None, private=
 
 
 @task(
-    develop,
     help={"purge": "Remove all related containers, networks images and volumes"},
 )
 def down(c, purge=False):
@@ -1163,7 +937,7 @@ def down(c, purge=False):
         c.run(cmd)
 
 
-@task(develop, help={"base": "Any valid tree-ish to compare against"})
+@task(help={"base": "Any valid tree-ish to compare against"})
 def test_changed(c, base=None):
     """
     Automatically run unit tests for changed modules.

@@ -86,6 +86,8 @@ jobs:
           pipx ensurepath
 
       - name: Build image & git-aggregate
+        env:
+          DEPTH_DEFAULT: 1
         run: |
           invoke img-build
           invoke git-aggregate
