@@ -1134,7 +1134,7 @@ def add_github_repository(c, organisation, repository, yaml_alias=None, private=
         if f"{yaml_alias}" in addons:
             raise FileExistsError(f"{yaml_alias} already in repos.yaml")
 
-        addons.update({f"./{yaml_alias}": ["*"]})
+        addons.update({f"{yaml_alias}": ["*"]})
 
         f.seek(0)
         f.write(yaml.dump(addons))
