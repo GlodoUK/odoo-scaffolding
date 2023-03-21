@@ -17,8 +17,6 @@ _exclude:
   - _traefik*_labels.yml
   - /.git
   - /.gitmodules
-  - /.vscode/launch.json
-  - /.vscode/settings.json
   - /**.pyc
   - /**.pyo
   - /CONTRIBUTING.md
