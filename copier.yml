@@ -32,7 +32,7 @@ _skip_if_exists:
   - odoo/custom/src/private/*/
   - odoo/custom/src/repos.yaml
   - odoo/custom/ssh/*
-  - !odoo/custom/ssh/known_hosts
+  - "!odoo/custom/ssh/known_hosts"
 
 _tasks:
   - invoke develop
