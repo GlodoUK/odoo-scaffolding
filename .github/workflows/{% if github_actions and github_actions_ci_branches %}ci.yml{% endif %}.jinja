@@ -85,9 +85,14 @@ jobs:
           pipx install pre-commit
           pipx ensurepath
 
-      - name: Build image & git-aggregate
+      - name: Build image
         run: |
           invoke img-build
+        
+      - name: Run git-aggregate
+        env:
+          DEPTH_DEFAULT: 1
+        run: |
           invoke git-aggregate
 
       - name: Run tests
