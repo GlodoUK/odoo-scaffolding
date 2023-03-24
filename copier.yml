@@ -21,10 +21,10 @@ _exclude:
   - /**.pyo
   - /copier.yml
   - /COPYING
-  - /src/tasks_downstream.py
+  - /tasks_downstream.py
   - /vendor
   - /**/.empty
-  - /src/tasks_downstream.py
+  - /tasks_downstream.py
 
 _skip_if_exists:
   - odoo/custom/dependencies/*.txt
