@@ -1,5 +1,6 @@
 # Configure jinja2 defaults to make syntax highlighters lives easier
 _templates_suffix: .jinja
+_subdirectory: src
 _envops:
   autoescape: false
   block_end_string: "%}"
@@ -11,27 +12,19 @@ _envops:
   variable_start_string: "{{"
 
 # Other Copier configurations
-_min_copier_version: "6.1.0"
+_min_copier_version: "7.1.0"
 _exclude:
   - _macros
-  - _traefik*_labels.yml
   - /.git
   - /.gitmodules
   - /**.pyc
   - /**.pyo
-  - /CONTRIBUTING.md
   - /copier.yml
   - /COPYING
-  - /docs
-  - /migrations.py
-  - /poetry.lock
-  - /pyproject.toml
-  - /scripts
-  - /tasks_downstream.py
-  - /tests
+  - /src/tasks_downstream.py
   - /vendor
   - /**/.empty
-  - /tasks_downstream.py
+  - /src/tasks_downstream.py
 
 _skip_if_exists:
   - odoo/custom/dependencies/*.txt
@@ -41,51 +34,7 @@ _skip_if_exists:
   - odoo/custom/ssh/*
 
 _tasks:
-  - invoke after-update
   - invoke develop
-
-_migrations:
-  - version: v0.0.1-0-0
-    after:
-      - - invoke
-        - --search-root={{ _copier_conf.src_path }}
-        - --collection=migrations
-        - from-doodba-scaffolding-to-copier
-  - version: v1.5.2
-    after:
-      - - invoke
-        - --search-root={{ _copier_conf.src_path }}
-        - --collection=migrations
-        - remove-odoo-auto-folder
-  - version: v1.5.3
-    after:
-      - - invoke
-        - --search-root={{ _copier_conf.src_path }}
-        - --collection=migrations
-        - remove-odoo-auto-folder
-  - version: v2.1.1a0
-    after:
-      - - invoke
-        - --search-root={{ _copier_conf.src_path }}
-        - --collection=migrations
-        - remove-vscode-launch-and-tasks
-        - "{{ _copier_conf.dst_path }}"
-  - version: v2.7.0a4
-    after:
-      - - invoke
-        - --search-root={{ _copier_conf.src_path }}
-        - --collection=migrations
-        - remove-vscode-settings
-        - "{{ _copier_conf.dst_path }}"
-  - version: v3.0.1
-    before: &update_no_license
-      - - invoke
-        - --search-root={{ _copier_conf.src_path }}
-        - --collection=migrations
-        - update-no-license
-        - "{{ _copier_conf.dst_path }}"
-        - "{{ _copier_conf.answers_file }}"
-    after: *update_no_license
 
 # Questions for the user
 odoo_version:
