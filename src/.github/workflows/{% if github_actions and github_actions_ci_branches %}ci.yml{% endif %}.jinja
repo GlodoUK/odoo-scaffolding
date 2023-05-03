@@ -79,8 +79,6 @@ jobs:
 
       - name: Setup pipx
         run: |
-          python3 -m pip install --user pipx
-          pipx install docker-compose
           pipx install invoke
           pipx install pre-commit
           pipx ensurepath
