@@ -1,4 +1,4 @@
-[![Copier template](https://img.shields.io/badge/template%20engine-copier-informational)][copier]
+[![Copier template](https://img.shields.io/badge/template%20engine-copier-informational)](https://github.com/copier-org/copier)
 [![Boost Software License 1.0](https://img.shields.io/badge/license-bsl--1.0-important)](COPYING)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
 
@@ -20,11 +20,9 @@ As we grew our needs diverged from the original project:
 
 See [Developer Environment Setup](guides/dev_setup.md).
 
-## Using this project to create or update a new Odoo project
+## Using this project to create or interact with an Odoo project
 
 See [Using copier](guides/using_copier.md).
-
-You only need to use copier when setting up or creating a new project. You will most likely be using a project already using this template.
 
 # Credits
 
