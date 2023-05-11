@@ -6,15 +6,16 @@
 
 This project is a combination of:
   * Documentation for how to setup your environment to run projects based on this template
-  * A [Copier](https://github.com/copier-org/copier) to standardise and maintain [Odoo](https://www.odoo.com/) deployments based on [Doodba](https://github.com/Tecnativa/doodba)
+  * A [Copier](https://github.com/copier-org/copier) template to standardise and maintain [Odoo](https://www.odoo.com/) projects based on [Doodba](https://github.com/Tecnativa/doodba)
 
 This project was forked from Tecnativa/doodba-copier-template. 
 
 As we grew our needs diverged from the original project:
 
-  * Deployment concerns were split into [glodouk/helm-charts](https://github.com/GlodoUK/helm-charts)
+  * We deploy into Kubernetes, thus a lot of the production tasks, etc. were not relevant to us
+    * Deployment concerns were split into [glodouk/helm-charts](https://github.com/GlodoUK/helm-charts)
   * The project was restructured to ease the understanding between *this* project's dotfiles and the template
-  * Additional bootstrapping and maintainence documentation was pulled in from an existing repository.
+  * Additional bootstrapping and maintainence documentation was pulled in from an existing repository due to significant overlap
 
 ## Bootstrapping & Maintaining Your Development Environment
 
@@ -31,4 +32,5 @@ This project is a fork of the upstream copier-template maintained by [Tecnativa]
 # Footnotes
 
 <sup>1</sup> [gloduk/odoo-devenv](https://github.dev/glodouk/odoo-devenv) was retired and moved into this repository.
+
 <sup>2</sup> Whilst the code is open source this is primarily an internal repository. As such all support outside of our customer base/internal staff is limited/at our discretion.
