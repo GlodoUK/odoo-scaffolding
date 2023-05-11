@@ -40,3 +40,76 @@ Copier will ask you a lot of questions. Answer them to properly generate the tem
 cd ~/path/to/your/downstream/scaffolding
 SKIP=flake8 copier update -D
 ```
+
+# Interacting with a project based on this template
+
+## Development/Start up
+
+Set up a valid VSCode development environment with:
+
+```sh
+invoke develop
+```
+
+Get Odoo and addons code with:
+
+```bash
+invoke img-build --pull
+invoke git-aggregate
+```
+
+Start Odoo with:
+
+```bash
+invoke start
+```
+
+All of the above in one shot:
+
+```bash
+invoke develop img-build git-aggregate start
+```
+
+See the other tasks:
+
+```bash
+invoke --list
+```
+
+To browse Odoo go to `http://localhost:${ODOO_MAJOR}069` (i.e. for Odoo 11.0 this would
+be `http://localhost:11069`).
+
+[MailPit](https://github.com/axllent/mailpit) is bundled to provide a fake SMTP server that
+intercepts all mail sent by Odoo and displays a simple interface that lets you see and
+debug all that mail comfortably, including headers sent, attachments, etc.
+You will find this on `http://localhost:${ODOO_MAJOR}025`.
+
+The Docker network is in `--internal` mode, which means that it has no access to the
+Internet. This feature protects you in cases where a production database is restored
+and Odoo tries to connect to SMTP/IMAP/POP3 servers to send or receive emails. Also when
+you are using [connectors](https://github.com/OCA/connector),
+[mail trackers](https://www.odoo.com/apps/modules/browse?search=mail_tracking) or any
+API sync/calls.
+
+If you still need to have public access, set `internal: false` in the environment file,
+detach all containers from that network, remove the network, reatach all containers to
+it, and possibly restart them. You can also just do:
+
+```bash
+invoke down
+invoke start
+```
+
+Alternatively you may add a whitelist service in the same manner as `cdnjs.cloudflare.com`, for example. Explore `devel.yaml`.
+
+There are several options for debugging: wdb and debugpy.
+
+wdb can be used by placing the following anywhere and then browsing to `http://localhost:${ODOO_MAJOR}984`
+```python
+import wdb
+wdb.set_trace()
+```
+
+Debugpy is enabled by calling `invoke start --debugpy`, or by using F5 in VSCode.
+
+Running tests `invoke test`
