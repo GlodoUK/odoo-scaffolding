@@ -29,7 +29,7 @@ pipx ensurepath --force
 Once you installed everything, you can now use Copier to copy this template:
 
 ```bash
-copier copy git@github.com:GlodoUK/odoo-scaffolding.git ~/path/to/your/subproject
+copier copy https://github.com/GlodoUK/odoo-scaffolding.git ~/path/to/your/subproject
 ```
 
 Copier will ask you a lot of questions. Answer them to properly generate the template.
