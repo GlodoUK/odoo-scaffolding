@@ -1,0 +1,78 @@
+{%- raw -%}
+# For this action to work you must explicitly allow GitHub Actions to create pull requests.
+# This setting can be found in a repository's settings under
+#  Actions > General > Workflow permissions.
+# For repositories belonging to an organization, this setting can be managed by admins in organization settings under
+#  Actions > General > Workflow permissions.
+
+name: copier template update
+concurrency:
+  group: copier-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  schedule:
+    - cron: "5 6 * * 0"
+  workflow_dispatch:
+
+jobs:
+  copier:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+
+      - name: Get python version
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Setup pipx
+        run: |
+          pipx install copier
+          pipx install invoke
+          pipx install pre-commit
+          pipx ensurepath
+
+      - name: Run copier update
+        env:
+          SKIP: flake8
+        run: |
+          copier --force update
+
+      - name: Disable pre-commit hooks
+        run: |
+          rm -rf .git/hooks
+
+      - name: Run pre-commit manually
+        continue-on-error: true
+        run: |
+          git add -A
+          pre-commit run
+
+      - name: Re-run git add to capture any re-formatted files
+        run: |
+          git add -A
+
+      - name: Get copier template version
+        id: copier
+        run: |
+          echo "version=$(yq -r "._commit" .copier-answers.yml)" >> "$GITHUB_OUTPUT"
+          echo "src=$(yq -r "._src_path" .copier-answers.yml)" >> "$GITHUB_OUTPUT"
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: "ci: copier update"
+          title: Copier Template Update
+          body: |
+            This PR brings the template up to date with copier template ${{ steps.copier.outputs.version }} from ${{ steps.copier.outputs.src }}.
+          branch: copier
+          token: ${{ secrets.PAT_COPIER_UPDATE }}
+{%- endraw %}

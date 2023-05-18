@@ -197,3 +197,13 @@ github_actions_ci_branches:
   default: >-
     ["{{ odoo_version }}"]
   when: *github_actions
+
+github_actions_copier_update:
+  type: bool
+  default: false
+  help: >-
+    Create a GitHub action to check and raise Pull Requests for updated copier templates?
+    ❗This assumes a GitHub PAT (token) has been created and is available in the secret
+    `PAT_COPIER_UPDATE` has been setup and allows creation of pull requests and
+    modifications to workflows
+  when: *github_actions
