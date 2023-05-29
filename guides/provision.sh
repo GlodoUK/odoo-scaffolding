@@ -214,6 +214,12 @@ EOF
   fi
 }
 
+ensure_not_root() {
+  if [ "$EUID" -eq 0 ]; then 
+    fatal "Please do not run this as root!"
+  fi
+}
+
 WORKING_DIR=$(mktemp -d)
 
 info "Created temp directory $WORKING_DIR"
@@ -226,11 +232,14 @@ fi
 
 pushd "$WORKING_DIR"
 
+trap '{ popd; rm -rf -- "$WORKING_DIR"; }' EXIT
+
 export DEBIAN_FRONTEND=noninteractive
 
 info "You may be asked to enter your sudo password during the course of this script."
 
 verify_system
+ensure_not_root
 install_prerequisites
 install_docker
 install_kubectl
@@ -246,5 +255,3 @@ source ~/.bashrc
 if grep -qi microsoft /proc/version; then
   info "Run wsl --shutdown and then reopen Ubuntu"
 fi
-
-trap '{ popd; rm -rf -- "$WORKING_DIR"; }' EXIT
