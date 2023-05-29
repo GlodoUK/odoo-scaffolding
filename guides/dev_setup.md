@@ -2,9 +2,8 @@
 
 You will need access to Docker and have the ability to run Linux based Docker containers for a supported development environment.
 
-* [Linux using Docker (Native)](linux_native.md) - Recommended on Linux
-* [Windows using WSL (Windows Subsystem for Linux)](windows_subsystem_for_linux.md) - Recommended over Virtual Machines under Windows 10 2004 or newer
-* :warning: Deprecated [MacOS, Windows or Linux using Virtual Machines](guides/virtual_machine_using_vagrant.md)
+* [Windows using WSL (Windows Subsystem for Linux)](windows_subsystem_for_linux.md)
+* [Linux using Docker (Native)](linux_native.md)
 
 ### Editor/IDE Setup & Code Conventions
 
