@@ -1,118 +1,250 @@
 #!/bin/bash
+
+set -e
+
+# Usage:
+#   curl -sfL https://raw.githubusercontent.com/GlodoUK/odoo-scaffolding/glodo/guides/provision.sh | bash -
+#
+# This script is intended to be as minimally destructive as possible to any existing Ubuntu installation
+
+# --- helper functions for logs
+info() {
+    echo '[INFO] ' "$@"
+}
+
+warn() {
+    echo '[WARN] ' "$@" >&2
+}
+
+fatal() {
+    echo '[ERROR] ' "$@" >&2
+    exit 1
+}
+
+verify_system() {
+  if [ `lsb_release -si` != "Ubuntu" ]; then 
+    fatal 'Expected Ubuntu'
+  fi
+
+  if [ -x /bin/systemctl ] || type systemctl > /dev/null 2>&1; then
+    return
+  fi
+  fatal 'Can not find systemd'
+}
+
+install_prerequisites() {
+  info "Installing prerequisites"
+
+  sudo add-apt-repository -y ppa:git-core/ppa
+  sudo apt-get -yq update
+  sudo apt-get install -yq \
+      apt-transport-https \
+      ca-certificates \
+      curl \
+      wget \
+      gnupg-agent \
+      software-properties-common \
+      build-essential \
+      samba \
+      acl \
+      inotify-tools \
+      git \
+      python3-pip \
+      python3-venv \
+      gnupg
+}
+
+install_docker() {
+  info "Installing Docker"
+
+  # cleanup any incompatible stuff
+  for pkg in docker.io docker-doc docker-compose podman-docker containerd runc
+  do 
+    if dpkg --get-selections | grep -q "^$pkg[[:space:]]*install$" >/dev/null; then 
+      sudo apt-get remove $pkg
+    fi
+  done
+
+  sudo install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+  echo \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+  sudo apt-get update
+  sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  sudo usermod -a -G docker $USER
+
+  if [ "$(type -t docker-compose)" = 'alias' ]; then
+    warn "Skipping docker-compose alias creation as already exists"
+  else
+    echo "alias docker-compose='docker compose --compatibility'" >> ~/.bashrc
+    source ~/.bashrc
+  fi
+}
+
+install_kubectl() {
+  if [ -x "$(command -v kubectl)" ]; then
+    warn "Skipping installation of kubectl as found on path"
+  else
+    info "Installing kubectl"
+    sudo curl -fsSLo /etc/apt/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+    sudo apt-get update
+    sudo apt-get install -y kubectl
+  fi
+}
+
+install_flux() {
+  if [ -x "$(command -v flux)" ]; then
+    warn "Skipping installation of FluxCD as flux found on path"
+  else
+    info "Installing FluxCD"
+    curl -s https://fluxcd.io/install.sh | sudo bash
+  fi
+}
+
+install_starship() {
+  info "Installing Starship.rs"
+
+  curl -sS https://starship.rs/install.sh | sh
+
+  grep -qxF 'starship' ~/.bashrc || echo '
+if [ -x "$(command -v starship)" ]; then
+  unset PROMPT_COMMAND
+  eval "$(starship init bash)"
+fi' >> ~/.bashrc
+
+  grep -qxF 'bash_completion' ~/.bashrc || echo '
+if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
+  . /etc/bash_completion
+fi
+
+if [ -f /usr/share/bash-completion/bash_completion ] && ! shopt -oq posix; then
+  . /usr/share/bash-completion/bash_completion
+fi'
+
+  source ~/.bashrc
+}
+
+install_teleport() {
+  if [ -x "$(command -v tsh)" ]; then
+    warn "Skipping installation of teleport as tsh already found on path"
+  else
+    info "Installing Teleport"
+    sudo curl "https://apt.releases.teleport.dev/gpg" -o /usr/share/keyrings/teleport-archive-keyring.asc
+    source /etc/os-release
+    echo "deb [signed-by=/usr/share/keyrings/teleport-archive-keyring.asc] \
+    https://apt.releases.teleport.dev/${ID?} ${VERSION_CODENAME?} stable/v13" \
+    | sudo tee /etc/apt/sources.list.d/teleport.list > /dev/null
+
+    sudo apt-get update
+    sudo apt-get install teleport
+  fi
+}
+
+install_sops() {
+  if [ -x "$(command -v tsh)" ]; then
+    warn "Skipping installation of SOPS as already installed"
+  else
+    info "Installing Mozilla SOPS"
+    curl -L "https://github.com/mozilla/sops/releases/download/v3.7.3/sops_3.7.3_amd64.deb" -o sops.deb
+    dpkg -i sops.deb
+    rm sops.deb
+  fi
+}
+
+install_code_dir() {
+  info "Creating ~/Code"
+  mkdir -p ~/Code
+}
+
+install_pipx() {
+  info "Installing pipx, copier, invoke and pre-commit"
+  python3 -m pip install --user pipx
+  ~/.local/bin/pipx install copier
+  ~/.local/bin/pipx install invoke
+  ~/.local/bin/pipx install pre-commit
+  
+  grep -qxF 'export PATH=$PATH:~/.local/bin/' ~/.bashrc || echo 'export PATH=$PATH:~/.local/bin/' >> ~/.bashrc
+
+  grep -qxF 'invoke --print-completion-script=bash' ~/.bashrc || echo '
+if [ -x "$(command -v invoke)" ]; then
+  eval "$(invoke --print-completion-script=bash)"
+fi ' >> ~/.bashrc
+}
+
+update_sysctl() {
+  if [[ $(sudo dmidecode -s system-product-name) == "Virtual Machine" && $(sudo dmidecode -s system-manufacturer == "Microsoft Corporation") ]]
+  then
+    info "Hyper-V detected, applying net.ipv6.config.all.forwarding=1 to avoid docker-compose issues"
+    # fixes issue specific to Hyper-V and docker-compose forwarding
+    sudo sysctl -w net.ipv6.conf.all.forwarding=1
+  fi
+
+  info "Raising fs.inotify.max_user_watches"
+  sudo sysctl -w fs.inotify.max_user_watches=524288
+}
+
+use_wsl_systemd_boot() {
+  if grep -qi microsoft /proc/version; then
+    sudo python3 <<EOF
+import os
+import configparser
+
+c = configparser.ConfigParser()
+if os.path.isfile('/etc/wsl.conf'):
+  c.read('/etc/wsl.conf')
+
+if not c.has_section('boot'):
+  c.add_section('boot')
+
+if not c.has_option('boot', 'systemd') or c.get('boot', 'systemd') != 'true':
+  c.set('boot', 'systemd', 'true')
+
+  with open('/etc/wsl.conf', 'w') as f:
+    c.write(f)
+EOF
+  else
+    warn "Native Linux detected, skipping /etc/wsl.conf modifications"
+  fi
+}
+
+WORKING_DIR=$(mktemp -d)
+
+info "Created temp directory $WORKING_DIR"
+
+# Exit if the temp directory wasn't created successfully.
+if [ ! -e "$WORKING_DIR" ]; then
+    >&2 echo "Failed to create temp directory"
+    exit 1
+fi
+
+pushd "$WORKING_DIR"
+
 export DEBIAN_FRONTEND=noninteractive
 
-user="vagrant"
-if [ "$1" != "" ]; then
-        user=$1
+info "You may be asked to enter your sudo password during the course of this script."
+
+verify_system
+install_prerequisites
+install_docker
+install_kubectl
+install_teleport
+install_starship
+install_code_dir
+install_pipx
+update_sysctl
+use_wsl_systemd_boot
+
+source ~/.bashrc
+
+if grep -qi microsoft /proc/version; then
+  info "Run wsl --shutdown and then reopen Ubuntu"
 fi
 
-# Some vagrant images are hard-coded with US sources
-sed -i 's|http://us.|http://|g' /etc/apt/sources.list
-timedatectl set-timezone Europe/London
-
-apt-get remove -yq snapd
-
-# On non-Hyper-V disable the Hyper-V daemons. They're not playing ball properly and shouldnt really be here.
-if [[ $(dmidecode -s system-product-name) != "Virtual Machine" && $(dmidecode -s system-manufacturer != "Microsoft Corporation") ]]
-then
-  # Not Hyper-V. Ensure the Hyper-V tools are missing to prevent start up delays.
-  apt-get remove -yq linux-cloud-tools-common
-else
-  # We're on Hyper-V
-  
-  # Disable DNSSEC under HyperV
-  # I'm getting issues, possibly due to the NAT switch fiddling with packets?
-  if ! grep -Fxq "DNSSEC=no" /etc/systemd/resolved.conf
-  then
-    echo DNSSEC=no >> /etc/systemd/resolved.conf
-    systemctl restart systemd-resolved
-  fi
-fi
-
-# add the git ppa to get the latest git, rather than what LTS ships with
-add-apt-repository -y ppa:git-core/ppa
-
-# update and upgrade
-apt-get -yq update
-apt-get -yq upgrade
-
-# pull in anything that we may be missing
-apt-get install -yq \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    gnupg-agent \
-    software-properties-common \
-    build-essential \
-    samba \
-    acl \
-    inotify-tools \
-    git \
-    python3-pip \
-    python3-venv
-
-# install docker-ce
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-
-add-apt-repository \
-   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-   $(lsb_release -cs) \
-   stable"
-
-apt-get -yq update
-apt-get install -yq docker-ce
-
-# add the user to the docker group so they dont need to keep running through sudo
-usermod -a -G docker $user
-
-# grab docker-compose
-curl -L "https://github.com/docker/compose/releases/download/v2.17.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
-
-# grab kubectl, helm, etc.
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-curl https://baltocdn.com/helm/signing.asc | apt-key add -
-echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | tee -a /etc/apt/sources.list.d/kubernetes.list
-echo "deb https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
-apt-get update
-apt-get install -yq kubectl helm
-
-# grab teleport
-curl https://deb.releases.teleport.dev/teleport-pubkey.asc | sudo apt-key add -
-add-apt-repository 'deb https://deb.releases.teleport.dev/ stable main'
-apt-get update
-apt-get install -yq teleport
-
-# grab sops
-curl -L https://github.com/mozilla/sops/releases/download/v3.7.1/sops_3.7.1_amd64.deb -o /tmp/sops.deb && dpkg -i /tmp/sops.deb
-
-# fixes issue specific to Hyper-V and docker-compose forwarding
-echo net.ipv6.conf.all.forwarding=1 >> /etc/sysctl.conf
-
-# raise inotify max watch
-echo fs.inotify.max_user_watches=524288 >> /etc/sysctl.conf
-
-# apply sysctl changes
-sysctl -p
-
-# make sure we have our default path created
-mkdir -p /home/$user/Code
-
-if [ $user == "vagrant" ]; then
-    # vagrant specific stuff. 
-    # this'll have to do for now.
-
-    # add a network persistent network share for /home/vagrant/Code
-    net usershare add code /home/$user/Code "~/Code Share" everyone:F guest_ok=yes
-    net usershare info --long=code /var/lib/samba/usershares/code
-    
-    # insecure. This'll have to do for now.
-    chmod -R a+rwx /home/$user/Code
-    setfacl -m "default:other:rwx" /home/$user/Code
-fi
-
-# Add copier template dependencies
-sudo -u $user bash -c "python3 -m pip install --user pipx && ~/.local/bin/pipx install copier && ~/.local/bin/pipx install invoke && ~/.local/bin/pipx install pre-commit && ~/.local/bin/pipx ensurepath"
-
-# Add .local/bin to .bashrc if it's not already there
-grep -qxF 'export PATH=$PATH:~/.local/bin/' ~/.bashrc || echo 'export PATH=$PATH:~/.local/bin/' >> ~/.bashrc
+trap '{ popd; rm -rf -- "$WORKING_DIR"; }' EXIT
