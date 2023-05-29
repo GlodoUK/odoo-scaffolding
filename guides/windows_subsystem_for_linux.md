@@ -3,7 +3,7 @@
 
   1. Ensure WSL is installed: https://docs.microsoft.com/en-us/windows/wsl/wsl2-install
   2. Ensure you are using WSL2 by default, by running `wsl --set-default-version 2` from either a Powershell or Windows Terminal/Command prompt.
-  2. If not already installed, install Ubuntu from the Windows App Store.
+  2. If not already installed, install `Ubuntu 22.04.2 LTS` from the Windows App Store. 
   3. Open the Ubuntu WSL instance from the start menu, and inside the instance;
      * Run `curl -sfL https://raw.githubusercontent.com/GlodoUK/odoo-scaffolding/glodo/guides/provision.sh | bash -`
      * You will be asked for your WSL password at least once during the setup process, please ensure that you enter this
