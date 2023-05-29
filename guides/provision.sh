@@ -75,7 +75,7 @@ install_docker() {
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
   sudo apt-get update
-  sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
   sudo usermod -a -G docker $USER
 
@@ -143,7 +143,7 @@ install_teleport() {
     | sudo tee /etc/apt/sources.list.d/teleport.list > /dev/null
 
     sudo apt-get update
-    sudo apt-get install teleport
+    sudo apt-get install -y teleport
   fi
 }
 
