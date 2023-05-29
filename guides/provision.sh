@@ -226,8 +226,6 @@ fi
 
 pushd "$WORKING_DIR"
 
-export DEBIAN_FRONTEND=noninteractive
-
 info "You may be asked to enter your sudo password during the course of this script."
 
 verify_system
