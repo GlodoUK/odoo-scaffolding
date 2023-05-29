@@ -61,7 +61,7 @@ install_docker() {
   for pkg in docker.io docker-doc docker-compose podman-docker containerd runc
   do 
     if dpkg --get-selections | grep -q "^$pkg[[:space:]]*install$" >/dev/null; then 
-      sudo apt-get remove $pkg
+      sudo apt-get remove -yq $pkg
     fi
   done
 
@@ -75,7 +75,7 @@ install_docker() {
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
   sudo apt-get update
-  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  sudo apt-get install -yq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
   sudo usermod -a -G docker $USER
 
@@ -95,7 +95,7 @@ install_kubectl() {
     sudo curl -fsSLo /etc/apt/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
     echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
     sudo apt-get update
-    sudo apt-get install -y kubectl
+    sudo apt-get install -yq kubectl
   fi
 }
 
@@ -143,7 +143,7 @@ install_teleport() {
     | sudo tee /etc/apt/sources.list.d/teleport.list > /dev/null
 
     sudo apt-get update
-    sudo apt-get install -y teleport
+    sudo apt-get install -yq teleport
   fi
 }
 
