@@ -1,10 +1,22 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+<summary>Table of contents</summary>
+
+- [Install the dependencies](#install-the-dependencies)
+- [Use the template to generate your subproject](#use-the-template-to-generate-your-subproject)
+- [Getting updates for your subproject](#getting-updates-for-your-subproject)
+- [Interacting with a project based on this template](#interacting-with-a-project-based-on-this-template)
+  - [Development/Start up](#developmentstart-up)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Install the dependencies
 
 This project itself is just the template, but you need to install these tools to use it:
 
 - Linux<sup>1</sup>
 - [copier](https://github.com/copier-org/copier)
-- [docker-compose](https://docs.docker.com/compose/install/)
+- [Docker](https://docs.docker.com/) and [Compose V2 plugin](https://docs.docker.com/compose/)
 - [git](https://git-scm.com/) 2.24 or newer
 - [invoke](https://www.pyinvoke.org/) installed in Python 3.6+ (and the binary must be
   called `invoke` — beware if your distro installs it as `invoke3` or similar).
@@ -12,7 +24,7 @@ This project itself is just the template, but you need to install these tools to
 - [python](https://www.python.org/) 3.6+
 - [venv](https://docs.python.org/3/library/venv.html)
 
-Install non-python apps with your distro's recommended package manager. 
+Install non-python apps with your distro's recommended package manager.
 
 The recommended way to install Python CLI apps is [pipx](https://pipxproject.github.io/pipx/):
 
@@ -105,6 +117,7 @@ Alternatively you may add a whitelist service in the same manner as `cdnjs.cloud
 There are several options for debugging: wdb and debugpy.
 
 wdb can be used by placing the following anywhere and then browsing to `http://localhost:${ODOO_MAJOR}984`
+
 ```python
 import wdb
 wdb.set_trace()

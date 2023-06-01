@@ -36,6 +36,7 @@ _skip_if_exists:
 
 _tasks:
   - invoke develop
+  - invoke auto-add-glodouk-enterprise-repo
 
 # Questions for the user
 odoo_version:
@@ -54,12 +55,10 @@ odoo_version:
     - 15.0
     - 16.0
 
-odoo_dbfilter:
-  default: ".*"
-  type: str
-  help: >-
-    Set your Odoo db filter. It must be a regexp that matches the domain name being
-    visited. It is useful if you use Odoo in SaaS mode.
+odoo_enterprise:
+  help: "Do you want to pull in GlodoUK/enterprise?"
+  default: False
+  type: bool
 
 odoo_initial_lang:
   default: en_GB
@@ -207,3 +206,12 @@ github_actions_copier_update:
     `PAT_COPIER_UPDATE` has been setup and allows creation of pull requests and
     modifications to workflows
   when: *github_actions
+
+pre_commit_excluded_modules:
+  type: yaml
+  multiline: true
+  help: >-
+    Private modules to ignore in pre-commit.
+    This is commonly useful for modules from the app store.
+  default: >-
+    []

@@ -43,7 +43,12 @@ exclude: |
   # Library files can have extraneous formatting (even minimized)
   /static/(src/)?lib/|
   # You don't usually want a bot to modify your legal texts
-  (LICENSE.*|COPYING.*)
+  (LICENSE.*|COPYING.*){% if pre_commit_excluded_modules %}|
+  # Do not format things out of our control
+  {%- for excluded in pre_commit_excluded_modules %}
+  ^odoo/custom/src/private/{{ excluded }}{{ "|" if not loop.last else "" }}
+  {%- endfor %}
+  {% endif %}
 default_language_version:
   python: python3
   node: "{{ repo_rev.nodejs }}"

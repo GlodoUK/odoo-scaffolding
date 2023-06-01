@@ -25,11 +25,13 @@ services:
       TARGET: odoo
 
   odoo:
-    extends:
-      file: common.yaml
-      service: odoo
+    {%- if odoo_oci_image %}
+    image: {{ odoo_oci_image }}:{{ macros.version_minor(odoo_version) }}
+    {%- endif %}
     build:
+      context: ./odoo
       args:
+        ODOO_VERSION: "{{ macros.version_minor(odoo_version) }}"
         # To aggregate in development, use `setup-devel.yaml`
         AGGREGATE: "false"
         # Export these variables to own files created by odoo in your filesystem
@@ -43,7 +45,9 @@ services:
       DOODBA_ENVIRONMENT: "${DOODBA_ENVIRONMENT-devel}"
       LIST_DB: "true"
       DEBUGPY_ENABLE: "${DOODBA_DEBUGPY_ENABLE:-0}"
-      PGDATABASE: &dbname devel
+      PGDATABASE: &dbname {{ postgres_dbname }}
+      PGUSER: &dbuser "{{ postgres_username }}"
+      PROXY_MODE: "{% if odoo_proxy %}true{% else %}false{% endif %}"
       PYTHONDONTWRITEBYTECODE: 1
       PYTHONOPTIMIZE: ""
       PYTHONPATH: /opt/odoo/custom/src/odoo
@@ -51,8 +55,10 @@ services:
       WDB_WEB_PORT: "{{ macros.version_major(odoo_version) }}984"
       # To avoid installing demo data export DOODBA_WITHOUT_DEMO=all
       WITHOUT_DEMO: "${DOODBA_WITHOUT_DEMO-true}"
+    tty: true
     volumes:
-      - ./odoo/custom:/opt/odoo/custom:ro,z
+      - filestore:/var/lib/odoo:z
+      - ./odoo/custom:/opt/odoo/custom:rw,z
       - ./odoo/auto:/opt/odoo/auto:rw,z
     depends_on:
       - db
@@ -77,27 +83,23 @@ services:
 
   {% if postgres_version -%}
   db:
-    extends:
-      file: common.yaml
-      service: db
+    image: ghcr.io/tecnativa/postgres-autoconf:{{ postgres_version }}-alpine
+    shm_size: 2gb
     environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: *dbuser
       POSTGRES_PASSWORD: odoopassword
-  {%- endif %}
-
-  pgweb:
-    image: sosedoff/pgweb
+      CONF_EXTRA: |
+        work_mem = 512MB
     networks: *public
     ports:
-      - "{{ macros.version_major(odoo_version) }}081:8081"
-    environment:
-      DATABASE_URL: postgres://{{ postgres_username }}:odoopassword@db:5432/devel?sslmode=disable
-    depends_on:
-      - db
+      - "{{ macros.version_major(odoo_version) }}432:5432"
+    volumes:
+      - db:/var/lib/postgresql/data:z
+  {%- endif %}
 
   smtp:
-    extends:
-      file: common.yaml
-      service: smtpfake
+    image: axllent/mailpit
     networks: *public
     ports:
       - "{{ macros.version_major(odoo_version) }}025:8025"

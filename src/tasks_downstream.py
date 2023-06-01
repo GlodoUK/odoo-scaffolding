@@ -1,18 +1,16 @@
-"""Doodba child project tasks.
+"""
+Doodba child project tasks.
 
 This file is to be executed with https://www.pyinvoke.org/ in Python 3.6+.
 
 Contains common helpers to develop using this child project.
 """
-import json
 import os
 import stat
 import tempfile
 import time
-from itertools import chain
 from logging import getLogger
 from pathlib import Path
-from shutil import which
 
 from invoke import exceptions, task
 from invoke.util import yaml
@@ -22,11 +20,11 @@ SRC_PATH = PROJECT_ROOT / "odoo" / "custom" / "src"
 UID_ENV = {"GID": str(os.getgid()), "UID": str(os.getuid()), "UMASK": "27"}
 SERVICES_WAIT_TIME = int(os.environ.get("SERVICES_WAIT_TIME", 4))
 ODOO_VERSION = float(
-    yaml.safe_load((PROJECT_ROOT / "common.yaml").read_text())["services"]["odoo"][
+    yaml.safe_load((PROJECT_ROOT / "devel.yaml").read_text())["services"]["odoo"][
         "build"
     ]["args"]["ODOO_VERSION"]
 )
-DB_USER = yaml.safe_load((PROJECT_ROOT / "common.yaml").read_text())["services"][
+DB_USER = yaml.safe_load((PROJECT_ROOT / "devel.yaml").read_text())["services"][
     "odoo"
 ]["environment"]["PGUSER"]
 
@@ -77,317 +75,6 @@ def _get_cwd_addon(file):
 
 
 @task
-def write_code_workspace_file(c, cw_path=None):
-    """Generate code-workspace file definition.
-
-    Some other tasks will call this one when needed, and since you cannot specify
-    the file name there, if you want a specific one, you should call this task
-    before.
-
-    Most times you just can forget about this task and let it be run automatically
-    whenever needed.
-
-    If you don't define a workspace name, this task will reuse the 1st
-    `doodba.*.code-workspace` file found inside the current directory.
-    If none is found, it will default to `doodba.$(basename $PWD).code-workspace`.
-
-    If you define it manually, remember to use the same prefix and suffix if you
-    want it git-ignored by default.
-    Example: `--cw-path doodba.my-custom-name.code-workspace`
-    """
-    root_name = f"doodba.{PROJECT_ROOT.name}"
-    root_var = "${workspaceFolder:%s}" % root_name
-    if not cw_path:
-        try:
-            cw_path = next(PROJECT_ROOT.glob("doodba.*.code-workspace"))
-        except StopIteration:
-            cw_path = f"{root_name}.code-workspace"
-    if not Path(cw_path).is_absolute():
-        cw_path = PROJECT_ROOT / cw_path
-    cw_config = {}
-    try:
-        with open(cw_path) as cw_fd:
-            cw_config = json.load(cw_fd)
-    except (FileNotFoundError, json.decoder.JSONDecodeError):
-        pass  # Nevermind, we start with a new config
-    # Static settings
-    cw_config.setdefault("settings", {})
-    cw_config["settings"].update(
-        {
-            "python.autoComplete.extraPaths": [f"{str(SRC_PATH)}/odoo"],
-            "python.linting.flake8Enabled": True,
-            "python.linting.ignorePatterns": [f"{str(SRC_PATH)}/odoo/**/*.py"],
-            "python.linting.pylintArgs": [
-                f"--init-hook=\"import sys;sys.path.append('{str(SRC_PATH)}/odoo')\"",
-                "--load-plugins=pylint_odoo",
-            ],
-            "python.linting.pylintEnabled": True,
-            "python.pythonPath": "python%s" % (2 if ODOO_VERSION < 11 else 3),
-            "restructuredtext.confPath": "",
-            "search.followSymlinks": False,
-            "search.useIgnoreFiles": False,
-            # Language-specific configurations
-            "[python]": {"editor.defaultFormatter": "ms-python.python"},
-            "[json]": {"editor.defaultFormatter": "esbenp.prettier-vscode"},
-            "[jsonc]": {"editor.defaultFormatter": "esbenp.prettier-vscode"},
-            "[markdown]": {"editor.defaultFormatter": "esbenp.prettier-vscode"},
-            "[yaml]": {"editor.defaultFormatter": "esbenp.prettier-vscode"},
-            "[xml]": {"editor.formatOnSave": False},
-        }
-    )
-    # Launch configurations
-    debugpy_configuration = {
-        "name": "Attach Python debugger to running container",
-        "type": "python",
-        "request": "attach",
-        "pathMappings": [],
-        "port": int(ODOO_VERSION) * 1000 + 899,
-        # HACK https://github.com/microsoft/vscode-python/issues/14820
-        "host": "0.0.0.0",
-    }
-    firefox_configuration = {
-        "type": "firefox",
-        "request": "launch",
-        "reAttach": True,
-        "name": "Connect to firefox debugger",
-        "url": f"http://localhost:{ODOO_VERSION:.0f}069/?debug=assets",
-        "reloadOnChange": {
-            "watch": f"{root_var}/odoo/custom/src/**/*.{'{js,css,scss,less}'}"
-        },
-        "skipFiles": ["**/lib/**"],
-        "pathMappings": [],
-    }
-    chrome_executable = which("chrome") or which("chromium")
-    chrome_configuration = {
-        "type": "chrome",
-        "request": "launch",
-        "name": "Connect to chrome debugger",
-        "url": f"http://localhost:{ODOO_VERSION:.0f}069/?debug=assets",
-        "skipFiles": ["**/lib/**"],
-        "trace": True,
-        "pathMapping": {},
-    }
-    if chrome_executable:
-        chrome_configuration["runtimeExecutable"] = chrome_executable
-    cw_config["launch"] = {
-        "compounds": [
-            {
-                "name": "Start Odoo and debug Python",
-                "configurations": ["Attach Python debugger to running container"],
-                "preLaunchTask": "Start Odoo in debug mode",
-            },
-            {
-                "name": "Test and debug current module",
-                "configurations": ["Attach Python debugger to running container"],
-                "preLaunchTask": "Run Odoo Tests in debug mode for current module",
-                "internalConsoleOptions": "openOnSessionStart",
-            },
-        ],
-        "configurations": [
-            debugpy_configuration,
-            firefox_configuration,
-            chrome_configuration,
-        ],
-    }
-    # Configure folders and debuggers
-    debugpy_configuration["pathMappings"].append(
-        {
-            "localRoot": "${workspaceFolder:odoo}/",
-            "remoteRoot": "/opt/odoo/custom/src/odoo",
-        }
-    )
-    cw_config["folders"] = []
-    for subrepo in SRC_PATH.glob("*"):
-        if not subrepo.is_dir():
-            continue
-        if (subrepo / ".git").exists() and subrepo.name != "odoo":
-            cw_config["folders"].append(
-                {"path": str(subrepo.relative_to(PROJECT_ROOT))}
-            )
-        for addon in chain(subrepo.glob("*"), subrepo.glob("addons/*")):
-            if (addon / "__manifest__.py").is_file() or (
-                addon / "__openerp__.py"
-            ).is_file():
-                if subrepo.name == "odoo":
-                    local_path = "${workspaceFolder:%s}/addons/%s/" % (
-                        subrepo.name,
-                        addon.name,
-                    )
-                else:
-                    local_path = "${workspaceFolder:%s}/%s" % (subrepo.name, addon.name)
-                debugpy_configuration["pathMappings"].append(
-                    {
-                        "localRoot": local_path,
-                        "remoteRoot": f"/opt/odoo/auto/addons/{addon.name}/",
-                    }
-                )
-                url = f"http://localhost:{ODOO_VERSION:.0f}069/{addon.name}/static/"
-                path = "${workspaceFolder:%s}/%s/static/" % (
-                    subrepo.name,
-                    addon.relative_to(subrepo),
-                )
-                firefox_configuration["pathMappings"].append({"url": url, "path": path})
-                chrome_configuration["pathMapping"][url] = path
-    cw_config["tasks"] = {
-        "version": "2.0.0",
-        "tasks": [
-            {
-                "label": "Start Odoo",
-                "type": "process",
-                "command": "invoke",
-                "args": ["start", "--detach"],
-                "presentation": {
-                    "echo": True,
-                    "reveal": "silent",
-                    "focus": False,
-                    "panel": "shared",
-                    "showReuseMessage": True,
-                    "clear": False,
-                },
-                "problemMatcher": [],
-                "options": {"statusbar": {"label": "$(play-circle) Start Odoo"}},
-            },
-            {
-                "label": "Install current module",
-                "type": "process",
-                "command": "invoke",
-                "args": ["install", "--cur-file", "${file}", "restart"],
-                "presentation": {
-                    "echo": True,
-                    "reveal": "always",
-                    "focus": True,
-                    "panel": "shared",
-                    "showReuseMessage": True,
-                    "clear": False,
-                },
-                "problemMatcher": [],
-                "options": {
-                    "statusbar": {"label": "$(symbol-property) Install module"}
-                },
-            },
-            {
-                "label": "Run Odoo Tests for current module",
-                "type": "process",
-                "command": "invoke",
-                "args": ["test", "--cur-file", "${file}"],
-                "presentation": {
-                    "echo": True,
-                    "reveal": "always",
-                    "focus": True,
-                    "panel": "shared",
-                    "showReuseMessage": True,
-                    "clear": False,
-                },
-                "problemMatcher": [],
-                "options": {"statusbar": {"label": "$(beaker) Test module"}},
-            },
-            {
-                "label": "Run Odoo Tests in debug mode for current module",
-                "type": "process",
-                "command": "invoke",
-                "args": [
-                    "test",
-                    "--cur-file",
-                    "${file}",
-                    "--debugpy",
-                ],
-                "presentation": {
-                    "echo": True,
-                    "reveal": "silent",
-                    "focus": False,
-                    "panel": "shared",
-                    "showReuseMessage": True,
-                    "clear": False,
-                },
-                "problemMatcher": [],
-                "options": {"statusbar": {"hide": True}},
-            },
-            {
-                "label": "Start Odoo in debug mode",
-                "type": "process",
-                "command": "invoke",
-                "args": ["start", "--detach", "--debugpy"],
-                "presentation": {
-                    "echo": True,
-                    "reveal": "silent",
-                    "focus": False,
-                    "panel": "shared",
-                    "showReuseMessage": True,
-                    "clear": False,
-                },
-                "problemMatcher": [],
-                "options": {"statusbar": {"hide": True}},
-            },
-            {
-                "label": "Stop Odoo",
-                "type": "process",
-                "command": "invoke",
-                "args": ["stop"],
-                "presentation": {
-                    "echo": True,
-                    "reveal": "silent",
-                    "focus": False,
-                    "panel": "shared",
-                    "showReuseMessage": True,
-                    "clear": False,
-                },
-                "problemMatcher": [],
-                "options": {"statusbar": {"label": "$(stop-circle) Stop Odoo"}},
-            },
-            {
-                "label": "Restart Odoo",
-                "type": "process",
-                "command": "invoke",
-                "args": ["restart"],
-                "presentation": {
-                    "echo": True,
-                    "reveal": "silent",
-                    "focus": False,
-                    "panel": "shared",
-                    "showReuseMessage": True,
-                    "clear": False,
-                },
-                "problemMatcher": [],
-                "options": {"statusbar": {"label": "$(history) Restart Odoo"}},
-            },
-            {
-                "label": "See container logs",
-                "type": "process",
-                "command": "invoke",
-                "args": ["logs"],
-                "presentation": {
-                    "echo": True,
-                    "reveal": "always",
-                    "focus": False,
-                    "panel": "shared",
-                    "showReuseMessage": True,
-                    "clear": False,
-                },
-                "problemMatcher": [],
-                "options": {
-                    "statusbar": {"label": "$(list-selection) See container logs"}
-                },
-            },
-        ],
-    }
-    # Sort project folders
-    cw_config["folders"].sort(key=lambda x: x["path"])
-    # Put Odoo folder just before private and top folder and map to debugpy
-    odoo = SRC_PATH / "odoo"
-    if odoo.is_dir():
-        cw_config["folders"].append({"path": str(odoo.relative_to(PROJECT_ROOT))})
-    # HACK https://github.com/microsoft/vscode/issues/95963 put private second to last
-    private = SRC_PATH / "private"
-    if private.is_dir():
-        cw_config["folders"].append({"path": str(private.relative_to(PROJECT_ROOT))})
-    # HACK https://github.com/microsoft/vscode/issues/37947 put top folder last
-    cw_config["folders"].append({"path": ".", "name": root_name})
-    with open(cw_path, "w") as cw_fd:
-        json.dump(cw_config, cw_fd, indent=2)
-        cw_fd.write("\n")
-
-
-@task
 def develop(c):
     """Set up a basic development environment."""
     # Prepare environment
@@ -395,7 +82,6 @@ def develop(c):
     with c.cd(str(PROJECT_ROOT)):
         c.run("git init")
         c.run("ln -sf devel.yaml docker-compose.yml")
-        write_code_workspace_file(c)
         c.run("pre-commit install")
 
 
@@ -407,11 +93,10 @@ def git_aggregate(c):
     """
     with c.cd(str(PROJECT_ROOT)):
         c.run(
-            "docker-compose --file setup-devel.yaml run --rm odoo",
+            "docker compose --compatibility --file setup-devel.yaml run --rm odoo",
             env=UID_ENV,
             pty=True,
         )
-    write_code_workspace_file(c)
     for git_folder in SRC_PATH.glob("*/.git/.."):
         action = (
             "install"
@@ -426,7 +111,7 @@ def git_aggregate(c):
 def closed_prs(c):
     with c.cd(str(PROJECT_ROOT)):
         cmd = (
-            "docker-compose --file setup-devel.yaml run --rm --no-deps"
+            "docker compose --compatibility --file setup-devel.yaml run --rm --no-deps"
             ' --entrypoint="gitaggregate -c /opt/odoo/custom/src/repos.yaml'
             ' show-closed-prs" odoo'
         )
@@ -436,7 +121,7 @@ def closed_prs(c):
 @task(develop)
 def img_build(c, pull=True):
     """Build docker images."""
-    cmd = "docker-compose build"
+    cmd = "docker compose --compatibility build"
     if pull:
         cmd += " --pull"
     with c.cd(str(PROJECT_ROOT)):
@@ -456,7 +141,7 @@ def lint(c, verbose=False):
 @task()
 def start(c, detach=True, debugpy=False):
     """Start environment."""
-    cmd = "docker-compose up"
+    cmd = "docker compose --compatibility up"
     with tempfile.NamedTemporaryFile(
         mode="w",
         suffix=".yaml",
@@ -464,7 +149,7 @@ def start(c, detach=True, debugpy=False):
         if debugpy:
             # Remove auto-reload
             cmd = (
-                "docker-compose -f docker-compose.yml "
+                "docker compose --compatibility -f docker-compose.yml "
                 f"-f {tmp_docker_compose_file.name} up"
             )
             _remove_auto_reload(
@@ -528,7 +213,7 @@ def install(
                 " See --help for details."
             )
         modules = cur_module
-    cmd = "docker-compose run --rm odoo addons init"
+    cmd = "docker compose --compatibility run --rm odoo addons init"
     if core:
         cmd += " --core"
     if extra:
@@ -552,7 +237,7 @@ def _test_in_debug_mode(c, odoo_command):
         mode="w", suffix=".yaml"
     ) as tmp_docker_compose_file:
         cmd = (
-            "docker-compose -f docker-compose.yml "
+            "docker compose --compatibility -f docker-compose.yml "
             f"-f {tmp_docker_compose_file.name} up -d"
         )
         _override_docker_command(
@@ -589,7 +274,7 @@ def _get_module_list(
     unless other options are specified.
     """
     # Get list of dependencies for addon
-    cmd = "docker-compose run --rm odoo addons list"
+    cmd = "docker compose --compatibility run --rm odoo addons list"
     if core:
         cmd += " --core"
     if extra:
@@ -690,7 +375,7 @@ def test(
     if debugpy:
         _test_in_debug_mode(c, odoo_command)
     else:
-        cmd = ["docker-compose", "run", "--rm"]
+        cmd = ["docker", "compose", "--compatibility", "run", "--rm"]
         if db_filter:
             cmd.extend(["-e", "DB_FILTER='%s'" % db_filter])
         cmd.append("odoo")
@@ -708,7 +393,7 @@ def test(
 )
 def stop(c, purge=False):
     """Stop and (optionally) purge environment."""
-    cmd = "docker-compose down --remove-orphans"
+    cmd = "docker compose --compatibility down --remove-orphans"
     if purge:
         cmd += " --rmi local --volumes"
     with c.cd(str(PROJECT_ROOT)):
@@ -718,7 +403,7 @@ def stop(c, purge=False):
 @task()
 def restart(c, quick=True):
     """Restart odoo container(s)."""
-    cmd = "docker-compose restart"
+    cmd = "docker compose --compatibility restart"
     if quick:
         cmd = f"{cmd} -t0"
     cmd = f"{cmd} odoo odoo_proxy"
@@ -735,7 +420,7 @@ def restart(c, quick=True):
 )
 def logs(c, tail=10, follow=True, container=None):
     """Obtain last logs of current environment."""
-    cmd = "docker-compose logs"
+    cmd = "docker compose --compatibility logs"
     if follow:
         cmd += " -f"
     if tail:
@@ -767,14 +452,14 @@ def stopstart(c, purge=False, detach=True, debugpy=False):
     if purge:
         stop(c, purge)
     else:
-        c.run("docker-compose stop", pty=True)
+        c.run("docker compose --compatibility stop", pty=True)
     start(c, detach, debugpy)
 
 
 @task()
 def psql(c, db=None):
     """Get an interactive psql shell"""
-    cmd = f"docker-compose exec db psql -U {DB_USER}"
+    cmd = f"docker compose --compatibility exec db psql -U {DB_USER}"
 
     if db:
         cmd += f" {db}"
@@ -794,7 +479,7 @@ def shell(c, db=None, native=True):
     if not native or ODOO_VERSION <= 10.0:
         shell_cmd = "click-odoo"
 
-    cmd = f"docker-compose run --rm odoo {shell_cmd}"
+    cmd = f"docker compose --compatibility run --rm odoo {shell_cmd}"
     if db:
         cmd += f" -d {db}"
 
@@ -804,16 +489,15 @@ def shell(c, db=None, native=True):
 @task()
 def bash(c):
     """Get a bash shell in the Odoo container"""
-    cmd = "docker-compose exec odoo bash"
+    cmd = "docker compose --compatibility exec odoo bash"
     c.run(cmd, pty=True)
 
 
 @task()
 def scaffold(c, name):
-    """Create a scaffold using Odoo's built in scaffolding"""
-    custom_path = PROJECT_ROOT / "odoo" / "custom"
+    """Create a scaffold using Odoo's built in scaffolding/templating"""
     cmd = (
-        f"docker-compose run --volume '{custom_path}:/opt/odoo/custom:rw,z'"
+        f"docker compose --compatibility run"
         f" --rm odoo odoo scaffold {name} /opt/odoo/custom/src/private"
     )
     c.run(cmd)
@@ -826,7 +510,7 @@ def upgrade(c, db=None, include_core=False):
     Ignores core addons by default.
     User --include-core to include them
     """
-    cmd = "docker-compose exec odoo click-odoo-update"
+    cmd = "docker compose --compatibility exec odoo click-odoo-update"
     if not include_core:
         cmd += " --ignore-core-addons"
     if db:
@@ -840,19 +524,28 @@ def upgrade(c, db=None, include_core=False):
         "organisation": "The github organisation or username i.e. glodouk, or oca",
         "repository": "The repository name i.e. edi, or enterprise",
         "yaml_alias": "The alias to use in the yaml file. Optional.",
-        "private": "Is this a private repo?",
+        "private": "Is this a private repo that requires a ssh key?",
+        "silent": "Silently continue if an error occurs?",
     },
 )
-def add_github_repository(c, organisation, repository, yaml_alias=None, private=False):
+def add_github_repository(
+    c, organisation, repository, yaml_alias=None, private=False, silent=False
+):
     target_repo = f"{organisation}_{repository}".lower()
-    repo_domain = "github.com"
+    if not yaml_alias:
+        yaml_alias = target_repo
+
+    git_remote = f"https://github.com/{organisation}/{repository}.git"
     ssh_key = None
 
     if private:
         repo_domain = f"{target_repo}.github.com"
+        git_remote = f"git@{repo_domain}:{organisation}/{repository}.git"
         ssh_key = f"odoo/custom/ssh/{target_repo}_ed25519"
 
         if os.path.exists(ssh_key):
+            if silent:
+                return
             raise FileExistsError(f"{ssh_key} already exists")
 
         cmd_key = (
@@ -866,6 +559,8 @@ def add_github_repository(c, organisation, repository, yaml_alias=None, private=
             f.seek(0)
 
             if f"Host {repo_domain}" in f.read():
+                if silent:
+                    return
                 raise FileExistsError(f"{repo_domain} already appears in ssh/config?")
 
             ssh_config = (
@@ -879,21 +574,18 @@ def add_github_repository(c, organisation, repository, yaml_alias=None, private=
 
             f.write(ssh_config)
 
-    if not yaml_alias:
-        yaml_alias = target_repo
-
     with open(SRC_PATH / "repos.yaml", "r+") as f:
         repos = yaml.safe_load(f.read())
         if f"./{yaml_alias}" in repos:
+            if silent:
+                return
             raise FileExistsError(f"{yaml_alias} already in repos.yaml")
 
         repos.update(
             {
                 f"./{yaml_alias}": {
                     "default": {"depth": "$DEPTH_DEFAULT"},
-                    "remotes": {
-                        f"{organisation.lower()}": f"git@{repo_domain}:{organisation}/{repository}.git"  # noqa: B950
-                    },
+                    "remotes": {f"{organisation.lower()}": git_remote},
                     "target": f"{organisation.lower()} $ODOO_VERSION",
                     "merges": [f"{organisation.lower()} $ODOO_VERSION"],
                 }
@@ -907,6 +599,8 @@ def add_github_repository(c, organisation, repository, yaml_alias=None, private=
     with open(SRC_PATH / "addons.yaml", "r+") as f:
         addons = yaml.safe_load(f.read())
         if f"{yaml_alias}" in addons:
+            if silent:
+                return
             raise FileExistsError(f"{yaml_alias} already in repos.yaml")
 
         addons.update({f"{yaml_alias}": ["*"]})
@@ -930,7 +624,7 @@ def add_github_repository(c, organisation, repository, yaml_alias=None, private=
 )
 def down(c, purge=False):
     """Take down and (optionally) purge environment."""
-    cmd = "docker-compose down"
+    cmd = "docker compose --compatibility down"
     if purge:
         cmd += " --remove-orphans --rmi local --volumes"
     with c.cd(str(PROJECT_ROOT)):
@@ -985,3 +679,48 @@ def test_changed(c, base=None):
     # pylint: disable=print-used
     print("Running tests for modules: %s" % (todo,))
     return test(c, modules=",".join(todo))
+
+
+@task()
+def preparedb(c):
+    """
+    Run the `preparedb` script inside the container which will set the following
+    system parameters:
+      - report url
+      - database expiration
+    """
+    if ODOO_VERSION < 11:
+        raise exceptions.PlatformError(
+            "The preparedb script is not available for Doodba environments bellow v11."
+        )
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(
+            "docker compose --compatibility run --rm odoo preparedb",
+            env=UID_ENV,
+            pty=True,
+        )
+
+
+@task(develop)
+def auto_add_glodouk_enterprise_repo(c):
+    """
+    Automatically add the GlodoUK/Enterprise repo and update the relevant
+    configuration files.
+
+    This is primarily here to be run as a task in the copier template.
+    """
+    enterprise = yaml.safe_load((PROJECT_ROOT / ".copier-answers.yml").read_text()).get(
+        "odoo_enterprise", False
+    )
+
+    if not enterprise:
+        return
+
+    return add_github_repository(
+        c,
+        organisation="glodouk",
+        repository="enterprise",
+        yaml_alias="enterprise",
+        private=True,
+        silent=True,
+    )
