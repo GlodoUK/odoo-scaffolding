@@ -29,4 +29,5 @@
   * Either cmdr, or Windows Terminal[2] is highly recommended over the default cmd/powershell terminal emulators
 
 [1] https://docs.microsoft.com/en-us/windows/wsl/wsl2-install
+
 [2] https://apps.microsoft.com/store/detail/windows-terminal/9N0DX20HK701?hl=en-gb&gl=gb
