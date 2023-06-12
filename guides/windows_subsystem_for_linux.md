@@ -5,10 +5,10 @@
   2. Ensure you are using WSL2 by default, by running `wsl --set-default-version 2` from either a Powershell or Windows Terminal/Command prompt.
   3. Open Powershell and run the following snippet to auto install our recommended applications. During this process you 
      ```powershell
-        winget install -e --id Microsoft.VisualStudioCode
-        winget install -e --id Google.Chrome
-        winget install -e --id AgileBits.1Password
-        winget install Canonical.Ubuntu.2204
+     winget install -e --id Microsoft.VisualStudioCode
+     winget install -e --id Google.Chrome
+     winget install -e --id AgileBits.1Password
+     winget install Canonical.Ubuntu.2204
      ```
   4. Open the Ubuntu WSL instance from the start menu. If this is the first time you have run this, it may take a few minutes to setup.
      * Inside the instance run the following snippet:
