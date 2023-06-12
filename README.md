@@ -17,11 +17,11 @@ As we grew our needs diverged from the original project:
   * The project was restructured to ease the understanding between *this* project's dotfiles and the template
   * Additional bootstrapping and maintainence documentation was pulled in from an existing repository due to significant overlap
 
-## Bootstrapping & Maintaining Your Development Environment
+## Setting up your PC to run projects that use this template
 
 See [Developer Environment Setup](guides/dev_setup.md).
 
-## Using this project to create or interact with an Odoo project
+## Creating or interact with an Odoo project using this template
 
 See [Using copier](guides/using_copier.md).
 
