@@ -164,12 +164,17 @@ install_code_dir() {
 }
 
 install_pipx() {
-  info "Installing pipx, copier, invoke, pre-commit and docker-compose (for backwards compatibility)"
+  info "Installing pipx, copier, invoke, pre-commit"
   python3 -m pip install --user pipx
   ~/.local/bin/pipx install copier
   ~/.local/bin/pipx install invoke
   ~/.local/bin/pipx install pre-commit
-  ~/.local/bin/pipx install docker-compose
+
+  if [ -x "$(command -v docker-compose)" ]; then
+    warn "Skipping installation of docker-compose, as it is already detected. This is a legacy tool and should be replaced with docker compose plugin."
+  else
+    ~/.local/bin/pipx install docker-compose
+  fi
   
   grep -qxF 'export PATH=$PATH:~/.local/bin/' ~/.bashrc || echo 'export PATH=$PATH:~/.local/bin/' >> ~/.bashrc
 
