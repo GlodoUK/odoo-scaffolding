@@ -164,11 +164,12 @@ install_code_dir() {
 }
 
 install_pipx() {
-  info "Installing pipx, copier, invoke and pre-commit"
+  info "Installing pipx, copier, invoke, pre-commit and docker-compose (for backwards compatibility)"
   python3 -m pip install --user pipx
   ~/.local/bin/pipx install copier
   ~/.local/bin/pipx install invoke
   ~/.local/bin/pipx install pre-commit
+  ~/.local/bin/pipx install docker-compose
   
   grep -qxF 'export PATH=$PATH:~/.local/bin/' ~/.bashrc || echo 'export PATH=$PATH:~/.local/bin/' >> ~/.bashrc
 
