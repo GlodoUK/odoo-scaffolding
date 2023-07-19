@@ -16,6 +16,19 @@
       "port": {{ macros.version_major(odoo_version) }}899,
       "host": "localhost",
       "preLaunchTask": "invoke stopstart"
+    },
+    {
+      "name": "Connect to Test",
+      "type": "python",
+      "request": "attach",
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceRoot}/odoo",
+          "remoteRoot": "/opt/odoo"
+        }
+      ],
+      "port": {{ macros.version_major(odoo_version) }}899,
+      "host": "localhost"
     }
   ]
 }
