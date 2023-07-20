@@ -78,13 +78,12 @@ install_docker() {
   sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
   sudo usermod -a -G docker $USER
+}
 
-  if [ "$(type -t docker-compose)" = 'alias' ]; then
-    warn "Skipping docker-compose alias creation as already exists"
-  else
-    echo "alias docker-compose='docker compose --compatibility'" >> ~/.bashrc
-    source ~/.bashrc
-  fi
+install_docker_compose() {
+    info "Installing docker-compose"
+    sudo curl -L https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
+    sudo chmod a+x /usr/local/bin/docker-compose
 }
 
 install_kubectl() {
@@ -169,12 +168,6 @@ install_pipx() {
   ~/.local/bin/pipx install copier
   ~/.local/bin/pipx install invoke
   ~/.local/bin/pipx install pre-commit
-
-  if [ -x "$(command -v docker-compose)" ]; then
-    warn "Skipping installation of docker-compose, as it is already detected. This is a legacy tool and should be replaced with docker compose plugin."
-  else
-    ~/.local/bin/pipx install docker-compose
-  fi
   
   grep -qxF 'export PATH=$PATH:~/.local/bin/' ~/.bashrc || echo 'export PATH=$PATH:~/.local/bin/' >> ~/.bashrc
 
@@ -248,6 +241,7 @@ verify_system
 ensure_not_root
 install_prerequisites
 install_docker
+install_docker_compose
 install_kubectl
 install_teleport
 install_starship
