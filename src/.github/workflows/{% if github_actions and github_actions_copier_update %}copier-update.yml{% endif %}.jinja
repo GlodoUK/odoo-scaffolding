@@ -44,7 +44,7 @@ jobs:
         env:
           SKIP: flake8
         run: |
-          copier --force update
+          copier update -f --trust
 
       - name: Disable pre-commit hooks
         run: |

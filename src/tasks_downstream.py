@@ -24,9 +24,9 @@ ODOO_VERSION = float(
         "build"
     ]["args"]["ODOO_VERSION"]
 )
-DB_USER = yaml.safe_load((PROJECT_ROOT / "devel.yaml").read_text())["services"][
-    "odoo"
-]["environment"]["PGUSER"]
+DB_USER = yaml.safe_load((PROJECT_ROOT / "devel.yaml").read_text())["services"]["odoo"][
+    "environment"
+]["PGUSER"]
 
 _logger = getLogger(__name__)
 
@@ -139,7 +139,7 @@ def lint(c, verbose=False):
 
 
 @task()
-def start(c, detach=True, debugpy=False):
+def start(c, detach=True, debugpy=False, database=False):
     """Start environment."""
     cmd = "docker compose --compatibility up"
     with tempfile.NamedTemporaryFile(
@@ -159,13 +159,15 @@ def start(c, detach=True, debugpy=False):
         if detach:
             cmd += " --detach"
         with c.cd(str(PROJECT_ROOT)):
+            extra_env = UID_ENV
+            if database and isinstance(database, str):
+                extra_env["PGDATABASE"] = database
+            if debugpy:
+                extra_env["DOODBA_DEBUGPY_ENABLE"] = str(int(debugpy))
             result = c.run(
                 cmd,
                 pty=True,
-                env=dict(
-                    UID_ENV,
-                    DOODBA_DEBUGPY_ENABLE=str(int(debugpy)),
-                ),
+                env=extra_env,
             )
             if not (
                 "Recreating" in result.stdout
@@ -187,6 +189,7 @@ def start(c, detach=True, debugpy=False):
         "enterprise": "Install all enterprise addons. Default: False",
         "cur-file": "Path to the current file."
         " Addon name will be obtained from there to install.",
+        "database": "Override the default PGDATABASE variable",
     },
 )
 def install(
@@ -197,6 +200,7 @@ def install(
     extra=False,
     private=False,
     enterprise=False,
+    database=False,
 ):
     """Install Odoo addons
 
@@ -225,14 +229,17 @@ def install(
     if modules:
         cmd += f" -w {modules}"
     with c.cd(str(PROJECT_ROOT)):
+        extra_env = UID_ENV
+        if database and isinstance(database, str):
+            extra_env["PGDATABASE"] = database
         c.run(
             cmd,
-            env=UID_ENV,
+            env=extra_env,
             pty=True,
         )
 
 
-def _test_in_debug_mode(c, odoo_command):
+def _test_in_debug_mode(c, odoo_command, database):
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".yaml"
     ) as tmp_docker_compose_file:
@@ -247,12 +254,13 @@ def _test_in_debug_mode(c, odoo_command):
             orig_file=Path(str(PROJECT_ROOT), "docker-compose.yml"),
         )
         with c.cd(str(PROJECT_ROOT)):
+            extra_env = UID_ENV
+            if database and isinstance(database, str):
+                extra_env["PGDATABASE"] = database
+            extra_env["DOODBA_DEBUGPY_ENABLE"] = "1"
             c.run(
                 cmd,
-                env=dict(
-                    UID_ENV,
-                    DOODBA_DEBUGPY_ENABLE="1",
-                ),
+                env=extra_env,
                 pty=True,
             )
         _logger.info("Waiting for services to spin up...")
@@ -267,6 +275,7 @@ def _get_module_list(
     private=False,
     enterprise=False,
     only_installable=True,
+    database=False,
 ):
     """Returns a list of addons according to the passed parameters.
 
@@ -288,9 +297,12 @@ def _get_module_list(
     if only_installable:
         cmd += " --installable"
     with c.cd(str(PROJECT_ROOT)):
+        extra_env = UID_ENV
+        if database and isinstance(database, str):
+            extra_env["PGDATABASE"] = database
         module_list = c.run(
             cmd,
-            env=UID_ENV,
+            env=extra_env,
             pty=True,
             hide="stdout",
         ).stdout.splitlines()[-1]
@@ -310,6 +322,7 @@ def _get_module_list(
         "cur-file": "Path to the current file."
         " Addon name will be obtained from there to run tests",
         "mode": "Mode in which tests run. Options: ['init'(default), 'update']",
+        "database": "Override the database to run against",
         "db_filter": "DB_FILTER regex to pass to the test container Set to ''"
         " to disable. Default: '^devel$'",
     },
@@ -325,6 +338,7 @@ def test(
     debugpy=False,
     cur_file=None,
     mode="init",
+    database=False,
     db_filter="^devel$",
 ):
     """Run Odoo tests
@@ -373,7 +387,7 @@ def test(
         # [-][tag][/module][:class][.method]
         odoo_command.extend(["--test-tags", "/" + ",/".join(modules_list)])
     if debugpy:
-        _test_in_debug_mode(c, odoo_command)
+        _test_in_debug_mode(c, odoo_command, database)
     else:
         cmd = ["docker", "compose", "--compatibility", "run", "--rm"]
         if db_filter:
@@ -381,9 +395,12 @@ def test(
         cmd.append("odoo")
         cmd.extend(odoo_command)
         with c.cd(str(PROJECT_ROOT)):
+            extra_env = UID_ENV
+            if database and isinstance(database, str):
+                extra_env["PGDATABASE"] = database
             c.run(
                 " ".join(cmd),
-                env=UID_ENV,
+                env=extra_env,
                 pty=True,
             )
 
@@ -401,14 +418,17 @@ def stop(c, purge=False):
 
 
 @task()
-def restart(c, quick=True):
+def restart(c, quick=True, database=False):
     """Restart odoo container(s)."""
     cmd = "docker compose --compatibility restart"
     if quick:
         cmd = f"{cmd} -t0"
     cmd = f"{cmd} odoo odoo_proxy"
     with c.cd(str(PROJECT_ROOT)):
-        c.run(cmd, env=UID_ENV, pty=True)
+        extra_env = UID_ENV
+        if database and isinstance(database, str):
+            extra_env["PGDATABASE"] = database
+        c.run(cmd, env=extra_env, pty=True)
 
 
 @task(
@@ -447,13 +467,13 @@ def after_update(c):
 
 
 @task()
-def stopstart(c, purge=False, detach=True, debugpy=False):
+def stopstart(c, purge=False, detach=True, debugpy=False, database=False):
     """Stop the environment, then start it again"""
     if purge:
         stop(c, purge)
     else:
         c.run("docker compose --compatibility stop", pty=True)
-    start(c, detach, debugpy)
+    start(c, detach, debugpy, database)
 
 
 @task()
@@ -612,11 +632,16 @@ def add_github_repository(
     if private and ssh_key:
         # pylint: disable=print-used
         print(
-            f"Please now add the new SSH key {ssh_key} to the repo {organisation}/{repository}"
+            f"Please now add the new SSH key {ssh_key} to the repo"
+            f" {organisation}/{repository}, and then run invoke img-build"
         )
 
     # pylint: disable=print-used
-    print("Please run git-aggregate")
+    print(
+        "Execute git-aggregate to pull in the new repository. It is recommended"
+        " to edit addons.yaml to reduce the compiled in modules to the minimum"
+        " required."
+    )
 
 
 @task(
@@ -631,8 +656,13 @@ def down(c, purge=False):
         c.run(cmd)
 
 
-@task(help={"base": "Any valid tree-ish to compare against"})
-def test_changed(c, base=None):
+@task(
+    help={
+        "base": "Any valid tree-ish to compare against",
+        "database": "Override PGDATABASE",
+    }
+)
+def test_changed(c, base=None, database=False):
     """
     Automatically run unit tests for changed modules.
     """
@@ -678,11 +708,11 @@ def test_changed(c, base=None):
 
     # pylint: disable=print-used
     print("Running tests for modules: %s" % (todo,))
-    return test(c, modules=",".join(todo))
+    return test(c, modules=",".join(todo), database=database)
 
 
 @task()
-def preparedb(c):
+def preparedb(c, database=False):
     """
     Run the `preparedb` script inside the container which will set the following
     system parameters:
@@ -694,9 +724,12 @@ def preparedb(c):
             "The preparedb script is not available for Doodba environments bellow v11."
         )
     with c.cd(str(PROJECT_ROOT)):
+        extra_env = UID_ENV
+        if database and isinstance(database, str):
+            extra_env["PGDATABASE"] = database
         c.run(
             "docker compose --compatibility run --rm odoo preparedb",
-            env=UID_ENV,
+            env=extra_env,
             pty=True,
         )
 

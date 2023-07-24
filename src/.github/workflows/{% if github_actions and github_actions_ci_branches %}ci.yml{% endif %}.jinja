@@ -95,5 +95,6 @@ jobs:
 
       - name: Run tests
         run: |
+          invoke install -m l10n_generic_coa
           invoke test-changed -b "origin/${{ github.base_ref }}"
 {%- endraw %}
