@@ -651,9 +651,15 @@ def down(c, purge=False):
     """Take down and (optionally) purge environment."""
     cmd = "docker compose --compatibility down"
     if purge:
-        cmd += " --remove-orphans --rmi local --volumes"
+        cmd += " --remove-orphans --rmi all --volumes"
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd)
+
+
+@task()
+def nuke(c):
+    """Forcefully remove all containers and networks. Alias for down purge=True."""
+    return down(c, purge=True)
 
 
 @task(
