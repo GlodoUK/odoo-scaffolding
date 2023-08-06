@@ -596,6 +596,8 @@ def add_github_repository(
 
     with open(SRC_PATH / "repos.yaml", "r+") as f:
         repos = yaml.safe_load(f.read())
+        if not repos:
+            repos = {}
         if f"./{yaml_alias}" in repos:
             if silent:
                 return
@@ -618,6 +620,8 @@ def add_github_repository(
 
     with open(SRC_PATH / "addons.yaml", "r+") as f:
         addons = yaml.safe_load(f.read())
+        if not addons:
+            addons = {}
         if f"{yaml_alias}" in addons:
             if silent:
                 return
