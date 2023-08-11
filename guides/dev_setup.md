@@ -19,7 +19,18 @@ Ensure your git email and name are correctly configured, where ever you use it. 
  * Run `git config --global user.name "your name"`
 
  ## Environment Maintenance
-  
-  * You will want to periodically run `docker system prune` to clean up any unused docker containers, images, etc.
-  * You may also want to periodically run `docker system prune --volumes`, this will also clean up volumes as well as containers, images, etc.
-  * If you are using a VM, or WSL, you should also periodically run `sudo apt-get update && sudo apt-get upgrade`
+
+| `docker system prune` | You will want to periodically run `docker system prune` to clean up any unused docker containers, images, etc. |
+| `docker system prune --volumes` | As above, but clears any volumes |
+| `docker image prune -a` | Clear old images not in use *right now* |
+| `sudo apt-get update && sudo apt-get upgrade && sudo apt-get autoclean` | (If using VM or WSL) Update app repos and clear up old cached repo data |
+
+### Shrinking your Development VHD (WSL Specific)
+
+```
+wsl --shutdown
+diskpart
+select vdisk file="{path to your vhd file}"
+compact vdisk
+exit
+```
