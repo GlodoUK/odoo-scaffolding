@@ -20,6 +20,7 @@ Ensure your git email and name are correctly configured, where ever you use it. 
 
  ## Environment Maintenance
 
+
 | `docker system prune` | You will want to periodically run `docker system prune` to clean up any unused docker containers, images, etc. |
 | `docker system prune --volumes` | As above, but clears any volumes |
 | `docker image prune -a` | Clear old images not in use *right now* |
