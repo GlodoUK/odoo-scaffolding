@@ -25,12 +25,34 @@ env:
   ODOO_VERSION: "{{ macros.version_minor(odoo_version) }}"
 
 jobs:
+
+  {%- if github_actions_build_on_schedule and github_actions_build_on_schedule_cron %}
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - continue-on-error: true
+        shell: bash
+        id: check-changes
+        name: "Check if latest commit is within 24 hrs"
+        {%- raw %}
+        run: "test -z $(git rev-list --after=\"24 hrs\" ${{ github.sha }}) && echo \"changes=true\" >> $GITHUB_OUTPUT"
+        {%- endraw %}
+    {%- endif %}
+
   build:
     runs-on: ubuntu-latest
+    {%- if github_actions_build_on_schedule and github_actions_build_on_schedule_cron %}
+    needs:
+      - changes
+    if: ${{ needs.changes.outputs.src == 'true' }}
+    {%- endif %}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
