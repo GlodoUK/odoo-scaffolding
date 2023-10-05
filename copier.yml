@@ -132,7 +132,7 @@ odoo_oci_image:
 postgres_version:
   default: "13"
   help: >-
-    Which PostgreSQL version do you want to deploy?
+    Which PostgreSQL version do you want to use? This should match production.
   choices:
     I will use an external PostgreSQL server: ""
     "9.6": "9.6"
@@ -141,6 +141,7 @@ postgres_version:
     "12": "12"
     "13": "13"
     "14": "14"
+    "15": "15",
 
 postgres_username:
   type: str
