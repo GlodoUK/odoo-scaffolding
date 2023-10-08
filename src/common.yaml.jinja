@@ -9,6 +9,9 @@ services:
     build:
       context: ./odoo
       args:
+        {%- if odoo_version >= 11 %}
+        DB_VERSION: "{{ postgres_version or 'latest' }}"
+        {%- endif %}
         ODOO_VERSION: "{{ macros.version_minor(odoo_version) }}"
         UID: "${UID:-1000}"
         GID: "${GID:-1000}"

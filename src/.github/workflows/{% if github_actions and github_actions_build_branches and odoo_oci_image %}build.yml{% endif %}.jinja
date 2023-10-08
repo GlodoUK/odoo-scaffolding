@@ -56,5 +56,8 @@ jobs:
           push: true
           build-args: |
             ODOO_VERSION={% raw %}${{ env.ODOO_VERSION }}{% endraw %}
+            {%- if odoo_version >= 11 %}
+            DB_VERSION="{{ postgres_version or 'latest' }}"
+            {%- endif %}
           tags: {% raw %}${{ steps.meta.outputs.tags }}{% endraw %}
           labels: {% raw %}${{ steps.meta.outputs.labels }}{% endraw %}
