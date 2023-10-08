@@ -130,7 +130,7 @@ odoo_oci_image:
   default: "glodouk/{{ project_name | lower }}"
 
 postgres_version:
-  default: "13"
+  default: "14"
   help: >-
     Which PostgreSQL version do you want to use? This should match production.
   choices:
@@ -141,7 +141,7 @@ postgres_version:
     "12": "12"
     "13": "13"
     "14": "14"
-    "15": "15",
+    "15": "15"
 
 postgres_username:
   type: str
@@ -151,11 +151,11 @@ postgres_username:
 
 postgres_dbname:
   type: str
-  default: prod
+  default: "{{ project_customer|lower|replace(' ','-') }}"
   help: >-
     💡 If database names differ among environments, operations like restoring a database
     from an alien environment will be harder to maintain, but can provide additional
-    security. It's up to you. We default to "prod" for historical reasons.
+    security. It's up to you. We default to "customername" for historical reasons.
 
     What is going to be the main database name?
 
