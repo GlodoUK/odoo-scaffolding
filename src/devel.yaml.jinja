@@ -91,6 +91,10 @@ services:
       POSTGRES_PASSWORD: odoopassword
       CONF_EXTRA: |
         work_mem = 512MB
+      # Why locale C - because of the performance issues on different collate settings
+      #   https://github.com/odoo/odoo/pull/25196
+      #   https://github.com/odoo/odoo/issues/141633#issuecomment-1817253915
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
     networks: *public
     ports:
       - "{{ macros.version_major(odoo_version) }}432:5432"
