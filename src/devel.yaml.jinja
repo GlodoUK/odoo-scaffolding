@@ -52,7 +52,7 @@ services:
       # To avoid installing demo data export DOODBA_WITHOUT_DEMO=all
       WITHOUT_DEMO: "${DOODBA_WITHOUT_DEMO-true}"
     volumes:
-      - ./odoo/custom:/opt/odoo/custom:ro,z
+      - ./odoo/custom:/opt/odoo/custom:rw,z
       - ./odoo/auto:/opt/odoo/auto:rw,z
     depends_on:
       - db
