@@ -83,18 +83,18 @@ repos:
       # Run the formatter.
       - id: ruff-format
   - repo: https://github.com/OCA/pylint-odoo
-      rev: "{{ repo_rev.pylint_odoo }}"
-      hooks:
-        - id: pylint_odoo
-          name: pylint with optional checks
-          args:
-            - --rc-file=.pylintrc
-            - --exit-zero
-          verbose: true
-        - id: pylint_odoo
-          name: pylint with mandatory checks
-          args:
-            - --rc-file=.pylintrc-mandatory
+    rev: "{{ repo_rev.pylint_odoo }}"
+    hooks:
+      - id: pylint_odoo
+        name: pylint with optional checks
+        args:
+          - --rc-file=.pylintrc
+          - --exit-zero
+        verbose: true
+      - id: pylint_odoo
+        name: pylint with mandatory checks
+        args:
+          - --rc-file=.pylintrc-mandatory
   {%- endif %}
   {%- if odoo_version < 17 %}
   - repo: https://github.com/myint/autoflake

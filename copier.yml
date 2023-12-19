@@ -41,7 +41,7 @@ _tasks:
 odoo_version:
   help: On which odoo version is it based?
   type: float
-  default: 15.0
+  default: 17.0
   choices:
     - 7.0
     - 8.0
