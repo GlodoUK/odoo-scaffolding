@@ -30,8 +30,6 @@
   "markdown.extension.toc.updateOnSave": false,
   "python.formatting.blackArgs": [],
   "python.formatting.provider": "black",
-  "python.linting.flake8Enabled": true,
-  "python.linting.pylintEnabled": true,
   "python.pythonPath": "${workspaceRoot}/.venv/bin/python",
   "python.testing.nosetestsEnabled": false,
   "python.testing.pytestArgs": ["-nauto", "tests"],
