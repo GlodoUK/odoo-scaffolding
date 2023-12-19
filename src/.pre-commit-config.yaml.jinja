@@ -35,6 +35,11 @@
   {%- set repo_rev.maintainer_tools = "9a170331575a265c092ee6b24b845ec508e8ef75" %}
   {%- set repo_rev.pylint_odoo = "v9.0.5" %}
   {%- set repo_rev.ruff = "v0.1.8" %}
+  {%- set repo_rev.eslint = "v8.56.0" %}
+  {%- set repo_rev.nodejs = "20.10.0" %}
+  {%- set repo_rev.pre_commit_hooks = "v4.5.0" %}
+  {%- set repo_rev.prettier = "v3.1.0" %}
+  {%- set repo_rev.xmllint = "b9281d1" %}
 {%- endif %}
 exclude: |
   # NOT INSTALLABLE ADDONS
@@ -77,20 +82,19 @@ repos:
         args: [ --fix ]
       # Run the formatter.
       - id: ruff-format
-
-    - repo: https://github.com/OCA/pylint-odoo
-        rev: "{{ repo_rev.pylint_odoo }}"
-        hooks:
-          - id: pylint_odoo
-            name: pylint with optional checks
-            args:
-              - --rc-file=.pylintrc
-              - --exit-zero
-            verbose: true
-          - id: pylint_odoo
-            name: pylint with mandatory checks
-            args:
-              - --rc-file=.pylintrc-mandatory
+  - repo: https://github.com/OCA/pylint-odoo
+      rev: "{{ repo_rev.pylint_odoo }}"
+      hooks:
+        - id: pylint_odoo
+          name: pylint with optional checks
+          args:
+            - --rc-file=.pylintrc
+            - --exit-zero
+          verbose: true
+        - id: pylint_odoo
+          name: pylint with mandatory checks
+          args:
+            - --rc-file=.pylintrc-mandatory
   {%- endif %}
   {%- if odoo_version < 17 %}
   - repo: https://github.com/myint/autoflake
