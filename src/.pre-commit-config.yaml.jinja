@@ -16,7 +16,7 @@
   {%- set repo_rev.pylint = "v2.11.1" %}
   {%- set repo_rev.pyupgrade = "v2.7.2" %}
   {%- set repo_rev.xmllint = "b9281d1" %}
-{%- else %}
+{%- odoo_version < 17 %}
   {%- set repo_rev.autoflake = "v1.4" %}
   {%- set repo_rev.black = "22.6.0" %}
   {%- set repo_rev.eslint = "v8.19.0" %}
@@ -31,6 +31,10 @@
   {%- set repo_rev.pylint_odoo = "6.2.0" %}
   {%- set repo_rev.pyupgrade = "v2.34.0" %}
   {%- set repo_rev.xmllint = "b9281d1" %}
+{%- else %}
+  {%- set repo_rev.maintainer_tools = "9a170331575a265c092ee6b24b845ec508e8ef75" %}
+  {%- set repo_rev.pylint_odoo = "v9.0.5" %}
+  {%- set repo_rev.ruff = "v0.1.8" %}
 {%- endif %}
 exclude: |
   # NOT INSTALLABLE ADDONS
@@ -63,6 +67,32 @@ repos:
         args:
           - --addons-dir
           - odoo/custom/src/private
+  {%- if odoo_version > 16 %}
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: "{{ repo_rev.ruff }}"
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args: [ --fix ]
+      # Run the formatter.
+      - id: ruff-format
+
+    - repo: https://github.com/OCA/pylint-odoo
+        rev: "{{ repo_rev.pylint_odoo }}"
+        hooks:
+          - id: pylint_odoo
+            name: pylint with optional checks
+            args:
+              - --rc-file=.pylintrc
+              - --exit-zero
+            verbose: true
+          - id: pylint_odoo
+            name: pylint with mandatory checks
+            args:
+              - --rc-file=.pylintrc-mandatory
+  {%- endif %}
+  {%- if odoo_version < 17 %}
   - repo: https://github.com/myint/autoflake
     rev: {{ repo_rev.autoflake }}
     hooks:
@@ -91,6 +121,7 @@ repos:
         name: isort except __init__.py
         args: [--settings, .]
         exclude: /__init__\.py$
+  {%- endif %}
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: {{ repo_rev.prettier }}
     hooks:
@@ -125,6 +156,7 @@ repos:
       - id: check-xml
       - id: mixed-line-ending
         args: ["--fix=lf"]
+  {%- if odoo_version < 17 %}
   - repo: https://github.com/PyCQA/flake8
     rev: {{ repo_rev.flake8 }}
     hooks:
@@ -150,6 +182,7 @@ repos:
           - --valid_odoo_versions={{ "%.1f"|format(odoo_version) }}
           - --rcfile=.pylintrc-mandatory
         additional_dependencies: *pylint_deps
+  {%- endif %}
   - repo: https://github.com/pre-commit/mirrors-eslint
     rev: {{ repo_rev.eslint }}
     hooks:
