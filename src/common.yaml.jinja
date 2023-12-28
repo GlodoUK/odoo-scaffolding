@@ -32,6 +32,13 @@ services:
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: *dbuser
+      # Why locale C? PostgreSQL is "under-optimized" with the use of 
+      # LIKE queries using wildcards (LIKE 'foo%') in conjunction with btree
+      # indexes, when not using locale C.
+      # See:
+      #   - https://github.com/odoo/odoo/pull/25196#issuecomment-396683972
+      #   - https://www.postgresql.org/docs/16/indexes-types.html#INDEXES-TYPES-BTREE
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
       CONF_EXTRA: |
         work_mem = 512MB
     volumes:
