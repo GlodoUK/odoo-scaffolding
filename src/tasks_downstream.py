@@ -20,7 +20,7 @@ from invoke.util import yaml
 PROJECT_ROOT = Path(__file__).parent.absolute()
 SRC_PATH = PROJECT_ROOT / "odoo" / "custom" / "src"
 UID_ENV = {"GID": str(os.getgid()), "UID": str(os.getuid()), "UMASK": "27"}
-SERVICES_WAIT_TIME = int(os.environ.get("SERVICES_WAIT_TIME", 4))
+SERVICES_WAIT_TIME = int(os.environ.get("SERVICES_WAIT_TIME", 1))
 ODOO_VERSION = float(
     yaml.safe_load((PROJECT_ROOT / "common.yaml").read_text())["services"]["odoo"][
         "build"
@@ -407,7 +407,7 @@ def git_aggregate(c):
     """
     with c.cd(str(PROJECT_ROOT)):
         c.run(
-            "docker-compose --file setup-devel.yaml run --rm odoo",
+            "docker compose --file setup-devel.yaml run --rm odoo",
             env=UID_ENV,
             pty=True,
         )
@@ -426,7 +426,7 @@ def git_aggregate(c):
 def closed_prs(c):
     with c.cd(str(PROJECT_ROOT)):
         cmd = (
-            "docker-compose --file setup-devel.yaml run --rm --no-deps"
+            "docker compose --file setup-devel.yaml run --rm --no-deps"
             ' --entrypoint="gitaggregate -c /opt/odoo/custom/src/repos.yaml'
             ' show-closed-prs" odoo'
         )
@@ -436,7 +436,7 @@ def closed_prs(c):
 @task(develop)
 def img_build(c, pull=True):
     """Build docker images."""
-    cmd = "docker-compose build"
+    cmd = "docker compose build"
     if pull:
         cmd += " --pull"
     with c.cd(str(PROJECT_ROOT)):
@@ -456,7 +456,7 @@ def lint(c, verbose=False):
 @task()
 def start(c, detach=True, debugpy=False):
     """Start environment."""
-    cmd = "docker-compose up"
+    cmd = "docker compose up"
     with tempfile.NamedTemporaryFile(
         mode="w",
         suffix=".yaml",
@@ -464,7 +464,7 @@ def start(c, detach=True, debugpy=False):
         if debugpy:
             # Remove auto-reload
             cmd = (
-                "docker-compose -f docker-compose.yml "
+                "docker compose -f docker-compose.yml "
                 f"-f {tmp_docker_compose_file.name} up"
             )
             _remove_auto_reload(
@@ -528,7 +528,7 @@ def install(
                 " See --help for details."
             )
         modules = cur_module
-    cmd = "docker-compose run --rm odoo addons init"
+    cmd = "docker compose run --rm odoo addons init"
     if core:
         cmd += " --core"
     if extra:
@@ -552,7 +552,7 @@ def _test_in_debug_mode(c, odoo_command):
         mode="w", suffix=".yaml"
     ) as tmp_docker_compose_file:
         cmd = (
-            "docker-compose -f docker-compose.yml "
+            "docker compose -f docker-compose.yml "
             f"-f {tmp_docker_compose_file.name} up -d"
         )
         _override_docker_command(
@@ -589,7 +589,7 @@ def _get_module_list(
     unless other options are specified.
     """
     # Get list of dependencies for addon
-    cmd = "docker-compose run --rm odoo addons list"
+    cmd = "docker compose run --rm odoo addons list"
     if core:
         cmd += " --core"
     if extra:
@@ -690,7 +690,7 @@ def test(
     if debugpy:
         _test_in_debug_mode(c, odoo_command)
     else:
-        cmd = ["docker-compose", "run", "--rm"]
+        cmd = ["docker compose", "run", "--rm"]
         if db_filter:
             cmd.extend(["-e", "DB_FILTER='%s'" % db_filter])
         cmd.append("odoo")
@@ -703,14 +703,10 @@ def test(
             )
 
 
-@task(
-    help={"purge": "Remove all related containers, networks images and volumes"},
-)
-def stop(c, purge=False):
-    """Stop and (optionally) purge environment."""
-    cmd = "docker-compose down --remove-orphans"
-    if purge:
-        cmd += " --rmi local --volumes"
+@task()
+def stop(c):
+    """Stop environment."""
+    cmd = "docker compose stop"
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd, pty=True)
 
@@ -718,7 +714,7 @@ def stop(c, purge=False):
 @task()
 def restart(c, quick=True):
     """Restart odoo container(s)."""
-    cmd = "docker-compose restart"
+    cmd = "docker compose restart"
     if quick:
         cmd = f"{cmd} -t0"
     cmd = f"{cmd} odoo odoo_proxy"
@@ -735,7 +731,7 @@ def restart(c, quick=True):
 )
 def logs(c, tail=10, follow=True, container=None):
     """Obtain last logs of current environment."""
-    cmd = "docker-compose logs"
+    cmd = "docker compose logs"
     if follow:
         cmd += " -f"
     if tail:
@@ -762,19 +758,21 @@ def after_update(c):
 
 
 @task()
-def stopstart(c, purge=False, detach=True, debugpy=False):
+def stopstart(c, quick=False, detach=True, debugpy=False):
     """Stop the environment, then start it again"""
-    if purge:
-        stop(c, purge)
+    result = c.run("docker compose ps --format=json", hide=True)
+    if result.stdout != "[]" and quick:
+        c.run("docker compose stop -t0 odoo")
+        start(c, detach, debugpy)
     else:
-        c.run("docker-compose stop", pty=True)
-    start(c, detach, debugpy)
+        c.run("docker compose stop", pty=True)
+        start(c, detach, debugpy)
 
 
 @task()
 def psql(c, db=None):
     """Get an interactive psql shell"""
-    cmd = f"docker-compose exec db psql -U {DB_USER}"
+    cmd = f"docker compose exec db psql -U {DB_USER}"
 
     if db:
         cmd += f" {db}"
@@ -794,7 +792,7 @@ def shell(c, db=None, native=True):
     if not native or ODOO_VERSION <= 10.0:
         shell_cmd = "click-odoo"
 
-    cmd = f"docker-compose run --rm odoo {shell_cmd}"
+    cmd = f"docker compose run --rm odoo {shell_cmd}"
     if db:
         cmd += f" -d {db}"
 
@@ -804,7 +802,7 @@ def shell(c, db=None, native=True):
 @task()
 def bash(c):
     """Get a bash shell in the Odoo container"""
-    cmd = "docker-compose exec odoo bash"
+    cmd = "docker compose exec odoo bash"
     c.run(cmd, pty=True)
 
 
@@ -813,7 +811,7 @@ def scaffold(c, name):
     """Create a scaffold using Odoo's built in scaffolding"""
     custom_path = PROJECT_ROOT / "odoo" / "custom"
     cmd = (
-        f"docker-compose run --volume '{custom_path}:/opt/odoo/custom:rw,z'"
+        f"docker compose run --volume '{custom_path}:/opt/odoo/custom:rw,z'"
         f" --rm odoo odoo scaffold {name} /opt/odoo/custom/src/private"
     )
     c.run(cmd)
@@ -826,7 +824,7 @@ def upgrade(c, db=None, include_core=False):
     Ignores core addons by default.
     User --include-core to include them
     """
-    cmd = "docker-compose exec odoo click-odoo-update"
+    cmd = "docker compose exec odoo click-odoo-update"
     if not include_core:
         cmd += " --ignore-core-addons"
     if db:
@@ -930,11 +928,11 @@ def add_github_repository(c, organisation, repository, yaml_alias=None, private=
 )
 def down(c, purge=False):
     """Take down and (optionally) purge environment."""
-    cmd = "docker-compose down"
+    cmd = "docker compose down"
     if purge:
         cmd += " --remove-orphans --rmi local --volumes"
     with c.cd(str(PROJECT_ROOT)):
-        c.run(cmd)
+        c.run(cmd, pty=True)
 
 
 @task(help={"base": "Any valid tree-ish to compare against"})
