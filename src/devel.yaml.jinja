@@ -12,6 +12,7 @@ version: "2.4"
 services:
   odoo_proxy:
     image: ghcr.io/tecnativa/docker-whitelist:latest
+    stop_grace_period: 0s
     depends_on:
       - odoo
     networks: &public
@@ -48,7 +49,6 @@ services:
       PYTHONOPTIMIZE: ""
       PYTHONPATH: /opt/odoo/custom/src/odoo
       SMTP_PORT: "1025"
-      WDB_WEB_PORT: "{{ macros.version_major(odoo_version) }}984"
       # To avoid installing demo data export DOODBA_WITHOUT_DEMO=all
       WITHOUT_DEMO: "${DOODBA_WITHOUT_DEMO-true}"
     volumes:
@@ -60,7 +60,6 @@ services:
       - proxy_{{ host|replace(".", "_") }}
       {% endfor -%}
       - smtp
-      - wdb
     command:
       - odoo
       - --limit-memory-soft=0
@@ -84,16 +83,6 @@ services:
       POSTGRES_PASSWORD: odoopassword
   {%- endif %}
 
-  pgweb:
-    image: sosedoff/pgweb
-    networks: *public
-    ports:
-      - "{{ macros.version_major(odoo_version) }}081:8081"
-    environment:
-      DATABASE_URL: postgres://{{ postgres_username }}:odoopassword@db:5432/devel?sslmode=disable
-    depends_on:
-      - db
-
   smtp:
     extends:
       file: common.yaml
@@ -102,18 +91,11 @@ services:
     ports:
       - "{{ macros.version_major(odoo_version) }}025:8025"
 
-  wdb:
-    image: kozea/wdb
-    networks: *public
-    ports:
-      - "{{ macros.version_major(odoo_version) }}984:1984"
-    # HACK https://github.com/Kozea/wdb/issues/136
-    init: true
-
   # Whitelist outgoing traffic for tests, reports, etc.
 {%- for host in whitelisted_hosts %}
   proxy_{{ host|replace(".", "_") }}:
     image: ghcr.io/tecnativa/docker-whitelist:latest
+    stop_grace_period: 0s
     networks:
       default:
         aliases:
