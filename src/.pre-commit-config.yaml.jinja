@@ -7,22 +7,20 @@
 {%- set repo_rev.maintainer_tools = "1070863d1298b1bf373a0e69458dd8a88ab91578" %}
 {%- set repo_rev.xmllint = "b9281d1" %}
 {%- set repo_rev.oca_pre_commit_hooks = "v0.0.29" %}
+{%- set repo_rev.pylint_odoo = "v9.0.5" %}
 
 {%- if odoo_version <= 15 %}
   {%- set repo_rev.eslint = "v7.8.1" %}
   {%- set repo_rev.nodejs = "14.13.0" %}
   {%- set repo_rev.prettier = "v2.1.2" %}
-  {%- set repo_rev.pylint_odoo = "v8.0.0" %}
 {%- elif odoo_version <= 16 %}
   {%- set repo_rev.eslint = "v8.19.0" %}
   {%- set repo_rev.nodejs = "14.18.0" %}
   {%- set repo_rev.prettier = "v2.7.1" %}
-  {%- set repo_rev.pylint_odoo = "v8.0.20" %}
 {%- else %}
   {%- set repo_rev.eslint = "v8.56.0" %}
   {%- set repo_rev.nodejs = "20.10.0" %}
   {%- set repo_rev.prettier = "v3.1.0" %}
-  {%- set repo_rev.pylint_odoo = "v9.0.5" %}
 {%- endif %}
 exclude: |
   # NOT INSTALLABLE ADDONS
