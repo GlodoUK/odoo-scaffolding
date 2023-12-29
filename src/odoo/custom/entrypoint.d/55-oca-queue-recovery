@@ -1,0 +1,15 @@
+#!/bin/bash
+if [ "$OCA_QUEUE_RECOVER" != true ]; then
+    log INFO Skipping OCA/queue recovery
+    exit 0
+fi
+
+if psql -q -c "SELECT 1 FROM queue_job LIMIT 1" > /dev/null; then
+    log INFO Recovering any OCA/queue jobs that are marked as started
+    psql -c "UPDATE queue_job SET state = 'pending' WHERE id IN (
+        SELECT id FROM queue_job WHERE state IN ('started', 'enqueued') FOR UPDATE SKIP LOCKED
+    )" > /dev/null || true
+else
+    log INFO Skipping OCA/queue job recovery, queue_job table does not exist
+    exit 0
+fi

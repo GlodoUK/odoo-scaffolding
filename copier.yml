@@ -12,7 +12,7 @@ _envops:
   variable_start_string: "{{"
 
 # Other Copier configurations
-_min_copier_version: "7.0.1"
+_min_copier_version: "8.1.0"
 _exclude:
   - _macros
   - /.git
@@ -22,7 +22,6 @@ _exclude:
   - /copier.yml
   - /COPYING
   - /tasks_downstream.py
-  - /vendor
   - /**/.empty
   - /tasks_downstream.py
 
@@ -190,6 +189,27 @@ github_actions_build_branches:
     ["{{ odoo_version }}"]
   when: *github_actions
 
+github_actions_build_on_push:
+  type: bool
+  help: >-
+    Build and push docker images on push to branches?
+  default: true
+  when: *github_actions
+
+github_actions_build_on_schedule:
+  type: bool
+  help: >-
+    Build and push docker images on a schedule?
+  default: false
+  when: *github_actions
+
+github_actions_build_on_schedule_cron:
+  type: str
+  help: >-
+    Cron for building on schedule. Defaults to 17:30 Friday
+  default: "30 17 * * 5"
+  when: "{{ github_actions_build_on_schedule == true }}"
+
 github_actions_ci_branches:
   type: yaml
   multiline: true
@@ -199,3 +219,12 @@ github_actions_ci_branches:
   default: >-
     ["{{ odoo_version }}"]
   when: *github_actions
+
+pre_commit_excluded_modules:
+  type: yaml
+  multiline: true
+  help: >-
+    Private modules to ignore in pre-commit.
+    This is commonly useful for modules from the app store.
+  default: >-
+    []

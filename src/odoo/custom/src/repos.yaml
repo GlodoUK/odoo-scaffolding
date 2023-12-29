@@ -14,23 +14,3 @@
     - odoo $ODOO_VERSION
     # Example of a merge of the PR with the number <PR>
     # - oca refs/pull/<PR>/head
-
-# OCA stock logistics workflow includes the critical module stock_no_negative
-./oca_stock-logistics-workflow:
-  defaults:
-    depth: $DEPTH_DEFAULT
-  remotes:
-    odoo: https://github.com/OCA/stock-logistics-workflow.git
-  target: odoo $ODOO_VERSION
-  merges:
-    - odoo $ODOO_VERSION
-
-# OCA web contains many useful modules, such as web_refresher
-./oca_web:
-  defaults:
-    depth: $DEPTH_DEFAULT
-  remotes:
-    odoo: https://github.com/OCA/web.git
-  target: odoo $ODOO_VERSION
-  merges:
-    - odoo $ODOO_VERSION

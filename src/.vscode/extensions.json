@@ -9,6 +9,6 @@
     "ms-azuretools.vscode-docker",
     "ms-python.vscode-pylance",
     "redhat.vscode-xml",
-    "syler.sass-indented"
+    "samuelcolvin.jinjahtml"
   ]
 }

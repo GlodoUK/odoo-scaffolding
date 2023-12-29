@@ -9,11 +9,17 @@ concurrency:
 
 on:
   workflow_dispatch:
+  {%- if github_actions_build_on_push %}
   push:
     branches: {{ github_actions_build_branches | tojson }}
     paths:
       - "odoo/**"
       - ".github/workflows/build.yaml"
+  {%- endif %}
+  {%- if github_actions_build_on_schedule and github_actions_build_on_schedule_cron %}
+  schedule:
+    - cron: {{ github_actions_build_on_schedule_cron | tojson }}
+  {%- endif %}
 
 env:
   ODOO_VERSION: "{{ macros.version_minor(odoo_version) }}"
