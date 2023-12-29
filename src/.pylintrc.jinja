@@ -3,19 +3,11 @@ load-plugins=pylint_odoo
 score=n
 
 [ODOOLINT]
-{%- if odoo_version <= 15 %}
-readme_template_url="https://github.com/OCA/maintainer-tools/blob/master/template/module/README.rst"
-manifest_required_authors={{ project_author }}
-manifest_required_keys=license
-manifest_deprecated_keys=description,active
-valid_odoo_versions={{ odoo_version }}
-{%- else %}
 readme-template-url="https://github.com/OCA/maintainer-tools/blob/master/template/module/README.rst"
 manifest-required-authors={{ project_author }}
 manifest-required-keys=license
 manifest-deprecated-keys=description,active
 valid-odoo-versions={{ odoo_version }}
-{%- endif %}
 
 [MESSAGES CONTROL]
 disable=all
