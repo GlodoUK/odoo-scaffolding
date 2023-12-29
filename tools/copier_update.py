@@ -44,7 +44,7 @@ def with_temporary_clone(repo: RepositoryRef):
             os.chdir(cwd)
 
 
-def _extract_repository_refs(ctx, param, value):
+def _extract_repository_refs(_ctx, _param, value) -> typing.List[RepositoryRef]:
     res = []
     for i in value:
         matches = re.match(
@@ -69,8 +69,9 @@ def _create_github_pull(
     copier_version_before,
     copier_version_after,
     is_clean,
-):
+) -> str | None:
     # Create the pull request
+    # FIXME: Handle if the PR already exists, and then update it
     body = [
         f"Copier update from {copier_version_before} to {copier_version_after}"
         "\nPlease ensure that you check this PR carefully before merging."
@@ -84,20 +85,24 @@ def _create_github_pull(
         "This PR was raised using glodouk/odoo-scaffolding/tools/copier_update.py"
     )
 
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {token}",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
+    payload = {
+        "title": f"ci: copier template update {copier_version_before} to {copier_version_after}",
+        "body": "\n\n".join(body),
+        "head": f"{current_repo.org}:{copier_branch}",
+        "base": current_repo.branch,
+    }
+
     response = requests.post(
         f"https://api.github.com/repos/{current_repo.org}/{current_repo.repo}/pulls",
-        headers={
-            "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {token}",
-            "X-GitHub-Api-Version": "2022-11-28",
-            "Content-Type": "application/x-www-form-urlencoded",
-        },
-        json={
-            "title": f"ci: copier template update {copier_version_before} to {copier_version_after}",
-            "body": "\n\n".join(body),
-            "head": f"{current_repo.org}:{copier_branch}",
-            "base": current_repo.branch,
-        },
+        headers=headers,
+        json=payload,
     )
 
     if not response.ok:
