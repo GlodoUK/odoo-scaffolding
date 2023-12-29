@@ -81,6 +81,8 @@ services:
       service: db
     environment:
       POSTGRES_PASSWORD: odoopassword
+    ports:
+      - "{{ macros.version_major(odoo_version) }}432:5432"
   {%- endif %}
 
   smtp:

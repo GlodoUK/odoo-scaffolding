@@ -1,11 +1,1 @@
 # See https://github.com/Tecnativa/doodba#optodoocustomsrcaddonsyaml
-
-oca_stock-logistics-workflow:
-  - stock_no_negative
-
-oca_web:
-  - web_tree_resize_column
-  - web_dialog_size
-  - web_no_bubble
-  - web_refresher
-  - web_environment_ribbon
