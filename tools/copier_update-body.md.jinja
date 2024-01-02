@@ -1,0 +1,16 @@
+[Scaffolding]({{ copier_template_url }}) update from `{{ copier_version_before }}` to `{{ copier_version_after }}`
+
+> [!IMPORTANT]
+> Please ensure that you carefully check this before merging.
+
+{%- if not is_clean %}
+---
+
+> [!CAUTION]
+> :warning: Manual intervention is required. The commit was not clean.
+{%- endif %}
+
+---
+
+This PR was raised using [glo_copier_update](https://github.com/GlodoUK/odoo-scaffolding/blob/glodo/tools/copier_update.py)
+{{ now.isoformat() }}
