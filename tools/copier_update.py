@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import datetime
 import yaml
 import logging
 import os
@@ -11,6 +12,8 @@ import typing
 import re
 from typing import NamedTuple
 import requests
+from jinja2 import Template
+
 
 logging.basicConfig()
 _logger = logging.getLogger(__name__)
@@ -62,53 +65,65 @@ def _extract_repository_refs(ctx, param, value):
     return res
 
 
-def _create_github_pull(
-    token,
-    copier_branch,
-    current_repo,
-    copier_version_before,
-    copier_version_after,
-    is_clean,
-):
-    # Create the pull request
-    body = [
-        f"Copier update from {copier_version_before} to {copier_version_after}"
-        "\nPlease ensure that you check this PR carefully before merging."
-    ]
-    if not is_clean:
-        body.append(
-            ":warning: Manual intervention is required. The commit was not clean."
-        )
+def _render_template(template_path: str, **kwargs) -> str:
+    with open(template_path, "r", encoding="utf8") as tf:
+        template = Template(tf.read())
+        return template.render(**kwargs)
 
-    body.append(
-        "This PR was raised using glodouk/odoo-scaffolding/tools/copier_update.py"
+
+def _create_or_update_github_pr(
+    token: str,
+    head: str,
+    current_repo: RepositoryRef,
+    title: str,
+    body: str,
+) -> str | None:
+    # Create the pull request
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {token}",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    payload = {
+        "title": title,
+        "body": body,
+        "head": f"{current_repo.org}:{head}",
+        "base": current_repo.branch,
+    }
+
+    existing_response = requests.get(
+        f"https://api.github.com/repos/{current_repo.org}/{current_repo.repo}/pulls?state=open&head={current_repo.org}:{head}&base={current_repo.branch}",
+        headers=headers,
     )
+
+    if existing_response.ok:
+        existing = next(iter(existing_response.json()), {})
+        if existing.get("number"):
+            number = existing.get("number")
+            requests.patch(
+                f"https://api.github.com/repos/{current_repo.org}/{current_repo.repo}/pulls/{number}",
+                headers=headers,
+                json=payload,
+            )
+            return existing.get("html_url")
 
     response = requests.post(
         f"https://api.github.com/repos/{current_repo.org}/{current_repo.repo}/pulls",
-        headers={
-            "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {token}",
-            "X-GitHub-Api-Version": "2022-11-28",
-            "Content-Type": "application/x-www-form-urlencoded",
-        },
-        json={
-            "title": f"ci: copier template update {copier_version_before} to {copier_version_after}",
-            "body": "\n\n".join(body),
-            "head": f"{current_repo.org}:{copier_branch}",
-            "base": current_repo.branch,
-        },
+        headers=headers,
+        json=payload,
     )
 
-    if not response.ok:
-        _logger.error(
-            f"Failed to create PR for {current_repo}",
-            response.status_code,
-            response.text,
-        )
-        return None
+    if response.ok:
+        return response.json().get("html_url")
 
-    return response.json().get("html_url")
+    _logger.warning(
+        f"Failed to create PR for {current_repo}: %s %s",
+        response.status_code,
+        response.text,
+    )
+
+    return None
 
 
 @click.command()
@@ -119,8 +134,20 @@ def _create_github_pull(
     callback=_extract_repository_refs,
     help='Should match the format "org/repo#branch. Repeat for each repo',
 )
-@click.option("--token", required=True, help="GitHub Token to create PRs")
-def main(repo: typing.List[RepositoryRef], token: str):
+@click.option("--github-auth-token", required=True, help="GitHub Token to create PRs")
+@click.option(
+    "--pull-request-body-template",
+    default=os.path.join(
+        os.path.dirname(__file__),
+        "copier_update-body.md.jinja",
+    ),
+    help="Template file to use for pull request template",
+)
+def main(
+    repo: typing.List[RepositoryRef],
+    github_auth_token: str,
+    pull_request_body_template: str,
+):
     results = []
 
     for current_repo in repo:
@@ -136,9 +163,9 @@ def main(repo: typing.List[RepositoryRef], token: str):
                 continue
 
             with open(".copier-answers.yml", "r") as answers:
-                copier_version_before = yaml.safe_load(answers.read()).get(
-                    "_commit", "unknown"
-                )
+                answers = yaml.safe_load(answers.read())
+                copier_version_before = answers.get("_commit", "unknown")
+                copier_template_url = answers.get("_src_path", "unknown")
 
             subprocess.check_call(["git", "checkout", "-B", copier_branch])
 
@@ -158,14 +185,14 @@ def main(repo: typing.List[RepositoryRef], token: str):
                     is_clean = True
                     break
 
-            # make sure we've definitely got everything
+            # Make sure we've definitely got everything
             if not is_clean:
                 subprocess.check_call(["git", "add", "."])
 
-            # are there any differences?
+            # Are there any differences?
             r = subprocess.call(["git", "diff", "--cached", "--quiet", "--exit-code"])
             if r == 0:
-                # no, continue
+                # No, continue
                 _logger.warn(f" - skipping {current_repo}, no changes pending")
                 continue
 
@@ -187,17 +214,25 @@ def main(repo: typing.List[RepositoryRef], token: str):
             subprocess.check_call(commit_cmd)
             subprocess.check_call(["git", "push", "-f", "-u", "origin", copier_branch])
 
-            pull_url = _create_github_pull(
-                token,
+            # Create pull request
+            pull_url = _create_or_update_github_pr(
+                github_auth_token,
                 copier_branch,
                 current_repo,
-                copier_version_before,
-                copier_version_after,
-                is_clean,
+                title=f"ci: copier template update {copier_version_before} to {copier_version_after}",
+                body=_render_template(
+                    pull_request_body_template,
+                    copier_template_url=copier_template_url,
+                    copier_version_before=copier_version_before,
+                    copier_version_after=copier_version_after,
+                    is_clean=is_clean,
+                    now=datetime.datetime.now(),
+                    current_repo=current_repo,
+                ),
             )
 
             if pull_url:
-                completion_msg = f"Created PR for {current_repo} - {pull_url}"
+                completion_msg = f"Created/Updated PR for {current_repo} - {pull_url}"
                 _logger.info(completion_msg)
                 results.append(completion_msg)
 
