@@ -98,7 +98,7 @@ def git_aggregate(c):
     """
     with c.cd(str(PROJECT_ROOT)):
         c.run(
-            "docker compose --file setup-devel.yaml run --rm odoo",
+            "docker compose --compatibility --file setup-devel.yaml run --rm odoo",
             env=_override_docker_env(),
             pty=True,
         )
@@ -116,7 +116,7 @@ def git_aggregate(c):
 def closed_prs(c):
     with c.cd(str(PROJECT_ROOT)):
         cmd = (
-            "docker compose --file setup-devel.yaml run --rm --no-deps"
+            "docker compose --compatibility --file setup-devel.yaml run --rm --no-deps"
             ' --entrypoint="gitaggregate -c /opt/odoo/custom/src/repos.yaml'
             ' show-closed-prs" odoo'
         )
@@ -126,7 +126,7 @@ def closed_prs(c):
 @task(develop)
 def img_build(c, pull=True):
     """Build docker images."""
-    cmd = "docker compose build"
+    cmd = "docker compose --compatibility build"
     if pull:
         cmd += " --pull"
     with c.cd(str(PROJECT_ROOT)):
@@ -146,7 +146,7 @@ def lint(c, verbose=False):
 @task()
 def start(c, detach=True, debugpy=False):
     """Start environment."""
-    cmd = "docker compose up"
+    cmd = "docker compose --compatibility up"
     with tempfile.NamedTemporaryFile(
         mode="w",
         suffix=".yaml",
@@ -154,7 +154,7 @@ def start(c, detach=True, debugpy=False):
         if debugpy:
             # Remove auto-reload
             cmd = (
-                "docker compose -f docker-compose.yml "
+                "docker compose --compatibility -f docker-compose.yml "
                 f"-f {tmp_docker_compose_file.name} up"
             )
             _remove_auto_reload(
@@ -219,7 +219,7 @@ def install(
                 " See --help for details."
             )
         modules = cur_module
-    cmd = "docker compose run --rm odoo addons init"
+    cmd = "docker compose --compatibility run --rm odoo addons init"
     if core:
         cmd += " --core"
     if extra:
@@ -243,7 +243,7 @@ def _test_in_debug_mode(c, odoo_command, database):
         mode="w", suffix=".yaml"
     ) as tmp_docker_compose_file:
         cmd = (
-            "docker compose -f docker-compose.yml "
+            "docker compose --compatibility -f docker-compose.yml "
             f"-f {tmp_docker_compose_file.name} up -d"
         )
         _override_docker_command(
@@ -280,7 +280,7 @@ def _get_module_list(
     unless other options are specified.
     """
     # Get list of dependencies for addon
-    cmd = "docker compose run --rm odoo addons list"
+    cmd = "docker compose --compatibility run --rm odoo addons list"
     if core:
         cmd += " --core"
     if extra:
@@ -451,7 +451,7 @@ def test_coverage_report(c, format=None):
 @task()
 def stop(c):
     """Stop environment."""
-    cmd = "docker compose stop"
+    cmd = "docker compose --compatibility stop"
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd, pty=True)
 
@@ -459,7 +459,7 @@ def stop(c):
 @task()
 def restart(c, quick=True):
     """Restart odoo container(s)."""
-    cmd = "docker compose restart"
+    cmd = "docker compose --compatibility restart"
     if quick:
         cmd = f"{cmd} -t0"
     cmd = f"{cmd} odoo odoo_proxy"
@@ -476,7 +476,7 @@ def restart(c, quick=True):
 )
 def logs(c, tail=10, follow=True, container=None):
     """Obtain last logs of current environment."""
-    cmd = "docker compose logs"
+    cmd = "docker compose --compatibility logs"
     if follow:
         cmd += " -f"
     if tail:
@@ -492,10 +492,10 @@ def stopstart(c, quick=False, detach=True, debugpy=False):
     """Stop the environment, then start it again"""
     result = c.run("docker compose ps --format=json", hide=True)
     if result.stdout != "[]" and quick:
-        c.run("docker compose stop -t0 odoo", pty=True)
+        c.run("docker compose --compatibility stop -t0 odoo", pty=True)
         start(c, detach, debugpy)
     else:
-        c.run("docker compose stop", pty=True)
+        c.run("docker compose --compatibility stop", pty=True)
         start(c, detach, debugpy)
 
 
