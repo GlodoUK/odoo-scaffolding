@@ -335,7 +335,6 @@ def _test_inject_coverage(odoo_command, modules_list):
         "mode": "Mode in which tests run. Options: ['init'(default), 'update']",
         "database": "Database to run against. Defaults to $PGDATABASE",
         "coverage": "Generate a coverage.py output",
-        "coverage_report": "bool, html or xml to generate a coverage report output",
     },
 )
 def test(
@@ -424,10 +423,14 @@ def test(
         "format": "Format to generate a coverage report in",
     }
 )
-def test_coverage_report(c, format="html"):
+def test_coverage_report(c, format=None):
+    if format is None:
+        format = "html"
+    
     FORMAT_TO_COMMAND = {
         "html": "html -d /opt/odoo/auto/coverage",
         "xml": "xml -o /opt/odoo/auto/coverage.xml",
+        "report": "report",
     }
 
     cmd = [
