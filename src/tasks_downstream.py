@@ -303,6 +303,23 @@ def _get_module_list(
     return module_list
 
 
+def _test_inject_coverage(odoo_command, modules_list):
+    # Inject coverage into the command
+    coverage_paths = ",".join(
+        map(lambda m: "/opt/odoo/custom/src/private/{}".format(m), modules_list)
+    )
+    if coverage_paths:
+        odoo_command[0] = "/usr/local/bin/odoo"
+        odoo_command = [
+            "coverage",
+            "run",
+            "--data-file=/opt/odoo/auto/.coverage",
+            "--source={}".format(coverage_paths),
+        ] + odoo_command
+
+    return odoo_command
+
+
 @task(
     help={
         "modules": "Comma-separated list of modules to test.",
@@ -317,6 +334,8 @@ def _get_module_list(
         " Addon name will be obtained from there to run tests",
         "mode": "Mode in which tests run. Options: ['init'(default), 'update']",
         "database": "Database to run against. Defaults to $PGDATABASE",
+        "coverage": "Generate a coverage.py output",
+        "coverage_report": "bool, html or xml to generate a coverage report output",
     },
 )
 def test(
@@ -331,6 +350,7 @@ def test(
     cur_file=None,
     mode="init",
     database=False,
+    coverage=False,
 ):
     """Run Odoo tests
 
@@ -372,6 +392,14 @@ def test(
         modules_list.remove(m_to_skip)
     modules = ",".join(modules_list)
     odoo_command.append(modules)
+
+    if coverage and modules_list:
+        if debugpy:
+            raise exceptions.ParseError(
+                msg="Coverage cannot run at the same time as debugpy"
+            )
+        odoo_command = _test_inject_coverage(odoo_command, modules_list)
+
     if ODOO_VERSION >= 12:
         # Limit tests to explicit list
         # Filter spec format (comma-separated)
@@ -389,6 +417,32 @@ def test(
                 env=_override_docker_env(database),
                 pty=True,
             )
+
+
+@task(
+    help={
+        "format": "Format to generate a coverage report in",
+    }
+)
+def test_coverage_report(c, format="html"):
+    FORMAT_TO_COMMAND = {
+        "html": "html -d /opt/odoo/auto/coverage",
+        "xml": "xml -o /opt/odoo/auto/coverage.xml",
+    }
+
+    cmd = [
+        "docker-compose run --rm odoo coverage",
+        FORMAT_TO_COMMAND.get(format, "report"),
+        "--data-file=/opt/odoo/auto/.coverage",
+        "--omit=*/__init__.py,*/__manifest__.py,*/tests/*.py",
+    ]
+
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(
+            " ".join(cmd),
+            env=UID_ENV,
+            pty=True,
+        )
 
 
 @task()
@@ -674,8 +728,13 @@ def preparedb(c, database=False):
         )
 
 
-@task(help={"base": "Any valid tree-ish to compare against"})
-def test_changed(c, base=None):
+@task(
+    help={
+        "base": "Any valid tree-ish to compare against",
+        "coverage": "Generate a coverage.py output",
+    }
+)
+def test_changed(c, base=None, coverage=False):
     """
     Automatically run unit tests for changed modules.
     """
@@ -719,4 +778,4 @@ def test_changed(c, base=None):
         return
 
     _logger.info("Running tests for modules: %s", todo)
-    return test(c, modules=",".join(todo))
+    return test(c, modules=",".join(todo), coverage=coverage)
