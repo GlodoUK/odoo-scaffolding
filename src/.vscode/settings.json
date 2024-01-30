@@ -1,8 +1,5 @@
 {
   // Language-specific settings
-  "[python]": {
-    "editor.defaultFormatter": "ms-python.python"
-  },
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
