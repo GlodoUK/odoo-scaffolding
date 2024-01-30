@@ -26,11 +26,16 @@ services:
       TARGET: odoo
 
   odoo:
-    extends:
-      file: common.yaml
-      service: odoo
+    {%- if odoo_oci_image %}
+    image: {{ odoo_oci_image }}:{{ macros.version_minor(odoo_version) }}
+    {%- endif %}
     build:
+      context: ./odoo
       args:
+        {%- if odoo_version >= 11 %}
+        DB_VERSION: "{{ postgres_version or 'latest' }}"
+        {%- endif %}
+        ODOO_VERSION: "{{ macros.version_minor(odoo_version) }}"
         # To aggregate in development, use `setup-devel.yaml`
         AGGREGATE: "false"
         # Export these variables to own files created by odoo in your filesystem
@@ -49,7 +54,15 @@ services:
       SMTP_PORT: "1025"
       # To avoid installing demo data export DOODBA_WITHOUT_DEMO=all
       WITHOUT_DEMO: "${DOODBA_WITHOUT_DEMO-true}"
+
+      PGDATABASE: &dbname {{ postgres_dbname }}
+      PGUSER: &dbuser "{{ postgres_username }}"
+      DB_FILTER: "{{ odoo_dbfilter }}"
+      PROXY_MODE: "{% if odoo_proxy %}true{% else %}false{% endif %}"
+      LIST_DB: "{{ odoo_listdb | tojson }}"
+    tty: true
     volumes:
+      - filestore:/var/lib/odoo:z
       - ./odoo/custom:/opt/odoo/custom:rw,z
       - ./odoo/auto:/opt/odoo/auto:rw,z
     depends_on:
@@ -74,20 +87,30 @@ services:
 
   {% if postgres_version -%}
   db:
-    extends:
-      file: common.yaml
-      service: db
+    image: ghcr.io/tecnativa/postgres-autoconf:{{ postgres_version }}-alpine
+    shm_size: 2gb
     environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: *dbuser
+      # Why locale C? PostgreSQL is "under-optimized" with the use of
+      # LIKE queries using wildcards (LIKE 'foo%') in conjunction with btree
+      # indexes, when not using locale C.
+      # See:
+      #   - https://github.com/odoo/odoo/pull/25196#issuecomment-396683972
+      #   - https://www.postgresql.org/docs/16/indexes-types.html#INDEXES-TYPES-BTREE
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+      CONF_EXTRA: |
+        work_mem = 512MB
       POSTGRES_PASSWORD: odoopassword
     networks: *public
     ports:
       - "{{ macros.version_major(odoo_version) }}432:5432"
+    volumes:
+      - db:/var/lib/postgresql/data:z
   {%- endif %}
 
   smtp:
-    extends:
-      file: common.yaml
-      service: smtpfake
+    image: axllent/mailpit
     networks: *public
     ports:
       - "{{ macros.version_major(odoo_version) }}025:8025"

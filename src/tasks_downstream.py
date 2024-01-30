@@ -17,13 +17,13 @@ SRC_PATH = PROJECT_ROOT / "odoo" / "custom" / "src"
 UID_ENV = {"GID": str(os.getgid()), "UID": str(os.getuid()), "UMASK": "27"}
 SERVICES_WAIT_TIME = int(os.environ.get("SERVICES_WAIT_TIME", 1))
 ODOO_VERSION = float(
-    yaml.safe_load((PROJECT_ROOT / "common.yaml").read_text())["services"]["odoo"][
+    yaml.safe_load((PROJECT_ROOT / "devel.yaml").read_text())["services"]["odoo"][
         "build"
     ]["args"]["ODOO_VERSION"]
 )
-DB_USER = yaml.safe_load((PROJECT_ROOT / "common.yaml").read_text())["services"][
-    "odoo"
-]["environment"]["PGUSER"]
+DB_USER = yaml.safe_load((PROJECT_ROOT / "devel.yaml").read_text())["services"]["odoo"][
+    "environment"
+]["PGUSER"]
 
 
 _logger = getLogger(__name__)
@@ -426,7 +426,7 @@ def test(
 def test_coverage_report(c, format=None):
     if format is None:
         format = "html"
-    
+
     FORMAT_TO_COMMAND = {
         "html": "html -d /opt/odoo/auto/coverage",
         "xml": "xml -o /opt/odoo/auto/coverage.xml",
@@ -434,7 +434,7 @@ def test_coverage_report(c, format=None):
     }
 
     cmd = [
-        "docker-compose run --rm odoo coverage",
+        "docker compose run --rm odoo coverage",
         FORMAT_TO_COMMAND.get(format, "report"),
         "--data-file=/opt/odoo/auto/.coverage",
         "--omit=*/__init__.py,*/__manifest__.py,*/tests/*.py",
@@ -782,3 +782,14 @@ def test_changed(c, base=None, coverage=False):
 
     _logger.info("Running tests for modules: %s", todo)
     return test(c, modules=",".join(todo), coverage=coverage)
+
+
+@task
+def after_copier_update(c):
+    """Execute some actions after a copier update or init"""
+
+    # Ensure coverage is present in the pip.txt file
+    pip = Path(PROJECT_ROOT, "odoo", "custom", "dependencies", "pip.txt")
+    with open(pip, "a+") as f:
+        if not any("coverage" == x.rstrip() for x in f):
+            f.write("coverage" + "\n")
