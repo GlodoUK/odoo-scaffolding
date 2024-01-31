@@ -17,13 +17,13 @@ SRC_PATH = PROJECT_ROOT / "odoo" / "custom" / "src"
 UID_ENV = {"GID": str(os.getgid()), "UID": str(os.getuid()), "UMASK": "27"}
 SERVICES_WAIT_TIME = int(os.environ.get("SERVICES_WAIT_TIME", 1))
 ODOO_VERSION = float(
-    yaml.safe_load((PROJECT_ROOT / "common.yaml").read_text())["services"]["odoo"][
+    yaml.safe_load((PROJECT_ROOT / "devel.yaml").read_text())["services"]["odoo"][
         "build"
     ]["args"]["ODOO_VERSION"]
 )
-DB_USER = yaml.safe_load((PROJECT_ROOT / "common.yaml").read_text())["services"][
-    "odoo"
-]["environment"]["PGUSER"]
+DB_USER = yaml.safe_load((PROJECT_ROOT / "devel.yaml").read_text())["services"]["odoo"][
+    "environment"
+]["PGUSER"]
 
 
 _logger = getLogger(__name__)
@@ -98,7 +98,7 @@ def git_aggregate(c):
     """
     with c.cd(str(PROJECT_ROOT)):
         c.run(
-            "docker compose --file setup-devel.yaml run --rm odoo",
+            "docker compose --compatibility --file setup-devel.yaml run --rm odoo",
             env=_override_docker_env(),
             pty=True,
         )
@@ -116,7 +116,7 @@ def git_aggregate(c):
 def closed_prs(c):
     with c.cd(str(PROJECT_ROOT)):
         cmd = (
-            "docker compose --file setup-devel.yaml run --rm --no-deps"
+            "docker compose --compatibility --file setup-devel.yaml run --rm --no-deps"
             ' --entrypoint="gitaggregate -c /opt/odoo/custom/src/repos.yaml'
             ' show-closed-prs" odoo'
         )
@@ -126,7 +126,7 @@ def closed_prs(c):
 @task(develop)
 def img_build(c, pull=True):
     """Build docker images."""
-    cmd = "docker compose build"
+    cmd = "docker compose --compatibility build"
     if pull:
         cmd += " --pull"
     with c.cd(str(PROJECT_ROOT)):
@@ -146,7 +146,7 @@ def lint(c, verbose=False):
 @task()
 def start(c, detach=True, debugpy=False):
     """Start environment."""
-    cmd = "docker compose up"
+    cmd = "docker compose --compatibility up"
     with tempfile.NamedTemporaryFile(
         mode="w",
         suffix=".yaml",
@@ -154,7 +154,7 @@ def start(c, detach=True, debugpy=False):
         if debugpy:
             # Remove auto-reload
             cmd = (
-                "docker compose -f docker-compose.yml "
+                "docker compose --compatibility -f docker-compose.yml "
                 f"-f {tmp_docker_compose_file.name} up"
             )
             _remove_auto_reload(
@@ -219,7 +219,7 @@ def install(
                 " See --help for details."
             )
         modules = cur_module
-    cmd = "docker compose run --rm odoo addons init"
+    cmd = "docker compose --compatibility run --rm odoo addons init"
     if core:
         cmd += " --core"
     if extra:
@@ -243,7 +243,7 @@ def _test_in_debug_mode(c, odoo_command, database):
         mode="w", suffix=".yaml"
     ) as tmp_docker_compose_file:
         cmd = (
-            "docker compose -f docker-compose.yml "
+            "docker compose --compatibility -f docker-compose.yml "
             f"-f {tmp_docker_compose_file.name} up -d"
         )
         _override_docker_command(
@@ -280,7 +280,7 @@ def _get_module_list(
     unless other options are specified.
     """
     # Get list of dependencies for addon
-    cmd = "docker compose run --rm odoo addons list"
+    cmd = "docker compose --compatibility run --rm odoo addons list"
     if core:
         cmd += " --core"
     if extra:
@@ -303,6 +303,23 @@ def _get_module_list(
     return module_list
 
 
+def _test_inject_coverage(odoo_command, modules_list):
+    # Inject coverage into the command
+    coverage_paths = ",".join(
+        map(lambda m: "/opt/odoo/custom/src/private/{}".format(m), modules_list)
+    )
+    if coverage_paths:
+        odoo_command[0] = "/usr/local/bin/odoo"
+        odoo_command = [
+            "coverage",
+            "run",
+            "--data-file=/opt/odoo/auto/.coverage",
+            "--source={}".format(coverage_paths),
+        ] + odoo_command
+
+    return odoo_command
+
+
 @task(
     help={
         "modules": "Comma-separated list of modules to test.",
@@ -317,6 +334,7 @@ def _get_module_list(
         " Addon name will be obtained from there to run tests",
         "mode": "Mode in which tests run. Options: ['init'(default), 'update']",
         "database": "Database to run against. Defaults to $PGDATABASE",
+        "coverage": "Generate a coverage.py output",
     },
 )
 def test(
@@ -331,6 +349,7 @@ def test(
     cur_file=None,
     mode="init",
     database=False,
+    coverage=False,
 ):
     """Run Odoo tests
 
@@ -372,6 +391,14 @@ def test(
         modules_list.remove(m_to_skip)
     modules = ",".join(modules_list)
     odoo_command.append(modules)
+
+    if coverage and modules_list:
+        if debugpy:
+            raise exceptions.ParseError(
+                msg="Coverage cannot run at the same time as debugpy"
+            )
+        odoo_command = _test_inject_coverage(odoo_command, modules_list)
+
     if ODOO_VERSION >= 12:
         # Limit tests to explicit list
         # Filter spec format (comma-separated)
@@ -391,10 +418,40 @@ def test(
             )
 
 
+@task(
+    help={
+        "format": "Format to generate a coverage report in",
+    }
+)
+def test_coverage_report(c, format=None):
+    if format is None:
+        format = "html"
+
+    FORMAT_TO_COMMAND = {
+        "html": "html -d /opt/odoo/auto/coverage",
+        "xml": "xml -o /opt/odoo/auto/coverage.xml",
+        "report": "report",
+    }
+
+    cmd = [
+        "docker compose run --rm odoo coverage",
+        FORMAT_TO_COMMAND.get(format, "report"),
+        "--data-file=/opt/odoo/auto/.coverage",
+        "--omit=*/__init__.py,*/__manifest__.py,*/tests/*.py",
+    ]
+
+    with c.cd(str(PROJECT_ROOT)):
+        c.run(
+            " ".join(cmd),
+            env=UID_ENV,
+            pty=True,
+        )
+
+
 @task()
 def stop(c):
     """Stop environment."""
-    cmd = "docker compose stop"
+    cmd = "docker compose --compatibility stop"
     with c.cd(str(PROJECT_ROOT)):
         c.run(cmd, pty=True)
 
@@ -402,7 +459,7 @@ def stop(c):
 @task()
 def restart(c, quick=True):
     """Restart odoo container(s)."""
-    cmd = "docker compose restart"
+    cmd = "docker compose --compatibility restart"
     if quick:
         cmd = f"{cmd} -t0"
     cmd = f"{cmd} odoo odoo_proxy"
@@ -419,7 +476,7 @@ def restart(c, quick=True):
 )
 def logs(c, tail=10, follow=True, container=None):
     """Obtain last logs of current environment."""
-    cmd = "docker compose logs"
+    cmd = "docker compose --compatibility logs"
     if follow:
         cmd += " -f"
     if tail:
@@ -435,10 +492,10 @@ def stopstart(c, quick=False, detach=True, debugpy=False):
     """Stop the environment, then start it again"""
     result = c.run("docker compose ps --format=json", hide=True)
     if result.stdout != "[]" and quick:
-        c.run("docker compose stop -t0 odoo", pty=True)
+        c.run("docker compose --compatibility stop -t0 odoo", pty=True)
         start(c, detach, debugpy)
     else:
-        c.run("docker compose stop", pty=True)
+        c.run("docker compose --compatibility stop", pty=True)
         start(c, detach, debugpy)
 
 
@@ -674,8 +731,13 @@ def preparedb(c, database=False):
         )
 
 
-@task(help={"base": "Any valid tree-ish to compare against"})
-def test_changed(c, base=None):
+@task(
+    help={
+        "base": "Any valid tree-ish to compare against",
+        "coverage": "Generate a coverage.py output",
+    }
+)
+def test_changed(c, base=None, coverage=False):
     """
     Automatically run unit tests for changed modules.
     """
@@ -719,4 +781,15 @@ def test_changed(c, base=None):
         return
 
     _logger.info("Running tests for modules: %s", todo)
-    return test(c, modules=",".join(todo))
+    return test(c, modules=",".join(todo), coverage=coverage)
+
+
+@task
+def after_copier_update(c):
+    """Execute some actions after a copier update or init"""
+
+    # Ensure coverage is present in the pip.txt file
+    pip = Path(PROJECT_ROOT, "odoo", "custom", "dependencies", "pip.txt")
+    with open(pip, "a+") as f:
+        if not any("coverage" == x.rstrip() for x in f):
+            f.write("coverage" + "\n")

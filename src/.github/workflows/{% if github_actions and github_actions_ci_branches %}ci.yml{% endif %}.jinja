@@ -24,8 +24,6 @@ jobs:
           filters: |
             src:
               - 'odoo/custom/src/private/**'
-              - 'odoo/custom/src/addons.yaml'
-              - 'odoo/custom/src/repos.yaml'
 
   pre-commit:
     runs-on: ubuntu-latest
@@ -96,5 +94,15 @@ jobs:
       - name: Run tests
         run: |
           invoke install -m l10n_generic_coa
-          invoke test-changed -b "origin/${{ github.base_ref }}"
+          invoke test-changed -b "origin/${{ github.base_ref }}" --coverage
+
+      - name: Create coverage XML report
+        run: |
+          invoke test-coverage-report --format=xml
+
+      - name: Post coverage report
+        uses: orgoro/coverage@v3.1
+        with:
+            coverageFile: odoo/auto/coverage.xml
+            token: ${{ secrets.GITHUB_TOKEN }}
 {%- endraw %}

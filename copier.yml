@@ -35,6 +35,7 @@ _skip_if_exists:
 
 _tasks:
   - invoke develop
+  - invoke after-copier-update
 
 # Questions for the user
 odoo_version:
