@@ -335,6 +335,7 @@ def _test_inject_coverage(odoo_command, modules_list):
         "mode": "Mode in which tests run. Options: ['init'(default), 'update']",
         "database": "Database to run against. Defaults to $PGDATABASE",
         "coverage": "Generate a coverage.py output",
+        "pytest": "Use pytest-odoo instead of default Odoo test suite",
     },
 )
 def test(
@@ -350,6 +351,7 @@ def test(
     mode="init",
     database=False,
     coverage=False,
+    pytest=False,
 ):
     """Run Odoo tests
 
@@ -370,15 +372,7 @@ def test(
         modules = cur_module
     else:
         modules = _get_module_list(c, modules, core, extra, private, enterprise)
-    odoo_command = ["odoo", "--test-enable", "--stop-after-init", "--workers=0"]
-    if mode == "init":
-        odoo_command.append("-i")
-    elif mode == "update":
-        odoo_command.append("-u")
-    else:
-        raise exceptions.ParseError(
-            msg="Available modes are 'init' or 'update'. See --help for details."
-        )
+
     # Skip test in some modules
     modules_list = modules.split(",")
     for m_to_skip in skip.split(","):
@@ -390,32 +384,126 @@ def test(
             )
         modules_list.remove(m_to_skip)
     modules = ",".join(modules_list)
-    odoo_command.append(modules)
 
-    if coverage and modules_list:
+    if pytest:
+        if coverage:
+            raise exceptions.ParseError(
+                msg="Coverage and pytest-odoo are not supported concurrently (yet)"
+            )
+
         if debugpy:
             raise exceptions.ParseError(
-                msg="Coverage cannot run at the same time as debugpy"
+                msg="Debugpy and pytest-odoo are not supported concurrently (yet)"
             )
-        odoo_command = _test_inject_coverage(odoo_command, modules_list)
 
-    if ODOO_VERSION >= 12:
-        # Limit tests to explicit list
-        # Filter spec format (comma-separated)
-        # [-][tag][/module][:class][.method]
-        odoo_command.extend(["--test-tags", "/" + ",/".join(modules_list)])
-    if debugpy:
-        _test_in_debug_mode(c, odoo_command, database)
-    else:
-        cmd = ["docker compose", "--compatibility", "run", "--rm"]
-        cmd.append("odoo")
-        cmd.extend(odoo_command)
+        # pytest-odoo requires the modules are already installed
+        # It is important to understand the difference between pytest-odoo and
+        # odoo's test suite.
+        # For more information please read https://github.com/camptocamp/pytest-odoo
+        install(c, modules=modules, database=database)
+
+        # Run pytest-odoo
+        cmd = [
+            "docker compose",
+            "--compatibility",
+            "run",
+            "--rm",
+            "odoo",
+            "pytest",
+            " ".join(["/opt/odoo/auto/addons/" + name for name in modules_list]),
+            "--disable-warnings",
+        ]
         with c.cd(str(PROJECT_ROOT)):
             c.run(
                 " ".join(cmd),
                 env=_override_docker_env(database),
                 pty=True,
             )
+    else:
+        MODES = {"init": "-i", "update": "-u"}
+
+        if not MODES.get(mode):
+            raise exceptions.ParseError(
+                msg="Available modes are 'init' or 'update'. See --help for details."
+            )
+
+        odoo_command = [
+            "odoo",
+            "--test-enable",
+            "--stop-after-init",
+            "--workers=0",
+            MODES.get(mode),
+            modules,
+        ]
+
+        if coverage and modules_list:
+            if debugpy:
+                raise exceptions.ParseError(
+                    msg="Coverage cannot run at the same time as debugpy"
+                )
+            odoo_command = _test_inject_coverage(odoo_command, modules_list)
+
+        if ODOO_VERSION >= 12:
+            # Limit tests to explicit list
+            # Filter spec format (comma-separated)
+            # [-][tag][/module][:class][.method]
+            odoo_command.extend(["--test-tags", "/" + ",/".join(modules_list)])
+        if debugpy:
+            _test_in_debug_mode(c, odoo_command, database)
+        else:
+            cmd = ["docker compose", "--compatibility", "run", "--rm"]
+            cmd.append("odoo")
+            cmd.extend(odoo_command)
+            with c.cd(str(PROJECT_ROOT)):
+                c.run(
+                    " ".join(cmd),
+                    env=_override_docker_env(database),
+                    pty=True,
+                )
+
+
+@task(
+    help={
+        "modules": "Comma-separated list of modules to test.",
+        "core": "Test all core addons. Default: False",
+        "extra": "Test all extra addons. Default: False",
+        "private": "Test all private addons. Default: False",
+        "enterprise": "Test all enterprise addons. Default: False",
+        "skip": "List of addons to skip. Default: []",
+        "debugpy": "Whether or not to run tests in a VSCode debugging session. "
+        "Default: False",
+        "cur-file": "Path to the current file."
+        " Addon name will be obtained from there to run tests",
+        "database": "Database to run against. Defaults to $PGDATABASE",
+    }
+)
+def pytest(
+    c,
+    modules=None,
+    core=False,
+    extra=False,
+    private=False,
+    enterprise=False,
+    skip="",
+    cur_file=None,
+    database=False,
+):
+    """
+    Alias for `test --pytest` with sensible defaults
+    """
+    test(
+        c,
+        modules,
+        core,
+        extra,
+        private,
+        enterprise,
+        skip,
+        False,
+        cur_file,
+        "init",
+        database,
+    )
 
 
 @task(
@@ -737,7 +825,7 @@ def preparedb(c, database=False):
         "coverage": "Generate a coverage.py output",
     }
 )
-def test_changed(c, base=None, coverage=False):
+def test_changed(c, base=None, coverage=False, pytest=False):
     """
     Automatically run unit tests for changed modules.
     """
@@ -781,15 +869,24 @@ def test_changed(c, base=None, coverage=False):
         return
 
     _logger.info("Running tests for modules: %s", todo)
-    return test(c, modules=",".join(todo), coverage=coverage)
+    return test(c, modules=",".join(todo), coverage=coverage, pytest=pytest)
 
 
 @task
 def after_copier_update(c):
     """Execute some actions after a copier update or init"""
 
-    # Ensure coverage is present in the pip.txt file
+    PIP_NEEDS = [
+        "coverage",
+        "pytest-odoo",
+    ]
+
     pip = Path(PROJECT_ROOT, "odoo", "custom", "dependencies", "pip.txt")
     with open(pip, "a+") as f:
-        if not any("coverage" == x.rstrip() for x in f):
-            f.write("coverage" + "\n")
+        lines = [x.rstrip() for x in f]
+
+        for i in PIP_NEEDS:
+            if i in lines:
+                continue
+
+            f.write(i + "\n")
