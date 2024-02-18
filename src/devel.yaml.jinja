@@ -87,8 +87,10 @@ services:
 
   {% if postgres_version -%}
   db:
-    image: ghcr.io/tecnativa/postgres-autoconf:{{ postgres_version }}-alpine
+    image: postgres:{{ postgres_version }}-alpine
     shm_size: 2gb
+    command: >
+      -c work_mem=512MB
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: *dbuser
@@ -99,8 +101,6 @@ services:
       #   - https://github.com/odoo/odoo/pull/25196#issuecomment-396683972
       #   - https://www.postgresql.org/docs/16/indexes-types.html#INDEXES-TYPES-BTREE
       POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
-      CONF_EXTRA: |
-        work_mem = 512MB
       POSTGRES_PASSWORD: odoopassword
     networks: *public
     ports:

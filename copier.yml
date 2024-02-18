@@ -131,11 +131,10 @@ odoo_oci_image:
   default: "glodouk/{{ project_name | lower }}"
 
 postgres_version:
-  default: "14"
+  default: "15"
   help: >-
     Which PostgreSQL version do you want to use? This should match production.
   choices:
-    I will use an external PostgreSQL server: ""
     "9.6": "9.6"
     "10": "10"
     "11": "11"
@@ -143,6 +142,7 @@ postgres_version:
     "13": "13"
     "14": "14"
     "15": "15"
+    "16": "16"
 
 postgres_username:
   type: str
