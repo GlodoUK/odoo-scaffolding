@@ -55,27 +55,14 @@ odoo_version:
     - 16.0
     - 17.0
 
-odoo_dbfilter:
-  default: ".*"
+odoo_admin_password:
+  secret: true
+  default: example-admin-password
   type: str
   help: >-
-    Set your Odoo db filter. It must be a regexp that matches the domain name being
-    visited. It is useful if you use Odoo in SaaS mode.
+    This is only used in development.
 
-odoo_initial_lang:
-  default: en_GB
-  type: str
-  help: >-
-    If you want to initialize Odoo automatically in a specific language, write it here.
-    The format must be ll_CC where ll is the language code and CC is the country code.
-
-    Examples: en_US, es_ES, es_VE...
-
-odoo_listdb:
-  default: false
-  type: bool
-  help: >-
-    Do you want to list databases publicly?
+    ❗ Do NOT use any production details as these are stored within the project, unencrypted.
 
 project_customer:
   type: str
@@ -143,6 +130,14 @@ postgres_version:
     "14": "14"
     "15": "15"
     "16": "16"
+
+postgres_image:
+  type: str
+  default: "postgres:{{ postgres_version }}-alpine"
+  help: >-
+    Image to use. When you are unsure, leave this as default.
+
+    Format: "image:tag"
 
 postgres_username:
   type: str
