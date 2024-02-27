@@ -57,9 +57,10 @@ services:
 
       PGDATABASE: &dbname {{ postgres_dbname }}
       PGUSER: &dbuser "{{ postgres_username }}"
-      DB_FILTER: "{{ odoo_dbfilter }}"
+      DB_FILTER: ".*"
       PROXY_MODE: "{% if odoo_proxy %}true{% else %}false{% endif %}"
-      LIST_DB: "{{ odoo_listdb | tojson }}"
+      LIST_DB: "true"
+      ADMIN_PASSWORD={{ odoo_admin_password }}
     tty: true
     volumes:
       - filestore:/var/lib/odoo:z
@@ -87,8 +88,10 @@ services:
 
   {% if postgres_version -%}
   db:
-    image: ghcr.io/tecnativa/postgres-autoconf:{{ postgres_version }}-alpine
+    image: {{ postgres_image }}
     shm_size: 2gb
+    command: >
+      -c work_mem=512MB
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: *dbuser
@@ -99,8 +102,6 @@ services:
       #   - https://github.com/odoo/odoo/pull/25196#issuecomment-396683972
       #   - https://www.postgresql.org/docs/16/indexes-types.html#INDEXES-TYPES-BTREE
       POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
-      CONF_EXTRA: |
-        work_mem = 512MB
       POSTGRES_PASSWORD: odoopassword
     networks: *public
     ports:
