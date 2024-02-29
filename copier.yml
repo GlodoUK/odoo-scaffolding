@@ -47,11 +47,11 @@ odoo_version:
     - 17.0
 
 odoo_admin_password:
-  secret: true
+  secret: false
   default: example-admin-password
   type: str
   help: >-
-    This is only used in development.
+    What Odoo admin password do you want to use? This is only used in development.
 
     ❗ Do NOT use any production details as these are stored within the project, unencrypted.
 
