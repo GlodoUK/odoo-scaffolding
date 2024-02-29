@@ -61,7 +61,7 @@ services:
       DB_FILTER: ".*"
       PROXY_MODE: "{% if odoo_proxy %}true{% else %}false{% endif %}"
       LIST_DB: "true"
-      ADMIN_PASSWORD={{ odoo_admin_password }}
+      ADMIN_PASSWORD: {{ odoo_admin_password }}
     tty: true
     volumes:
       - filestore:/var/lib/odoo:z
