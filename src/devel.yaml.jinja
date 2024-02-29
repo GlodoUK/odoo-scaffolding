@@ -1,12 +1,14 @@
 {%- import "_macros.jinja" as macros -%}
-{% set whitelisted_hosts = (
-  "cdnjs.cloudflare.com",
+{% set whitelisted_hosts = [
   "fonts.googleapis.com",
   "fonts.gstatic.com",
-  "www.google.com",
   "www.googleapis.com",
   "www.gravatar.com",
-) -%}
+] -%}
+{% if odoo_version <= 15 -%}
+{% set whitelisted_hosts = "cdnjs.cloudflare.com" + whitelisted_hosts -%}
+{% endif -%}
+
 version: "2.4"
 
 services:
