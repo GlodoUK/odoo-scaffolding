@@ -673,7 +673,8 @@ def add_github_repository(
 
     with open(SRC_PATH / "addons.yaml", "r+") as f:
         addons = yaml.safe_load(f.read())
-        if f"{yaml_alias}" not in addons:
+        if not addons or f"{yaml_alias}" not in addons:
+            addons = addons or {}
             addons.update({f"{yaml_alias}": ["*"]})
 
             f.seek(0)
