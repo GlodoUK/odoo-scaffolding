@@ -9,8 +9,6 @@
 {% set whitelisted_hosts = "cdnjs.cloudflare.com" + whitelisted_hosts -%}
 {% endif -%}
 
-version: "2.4"
-
 services:
   odoo_proxy:
     image: ghcr.io/tecnativa/docker-whitelist:latest
