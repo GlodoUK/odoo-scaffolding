@@ -427,6 +427,10 @@ def test_coverage_report(c, format=None):
     if format is None:
         format = "html"
 
+    if not (PROJECT_ROOT / "odoo" / "auto" / ".coverage").exists():
+        _logger.warning("Coverage input file does not exist, skipping")
+        return
+
     FORMAT_TO_COMMAND = {
         "html": "html -d /opt/odoo/auto/coverage",
         "xml": "xml -o /opt/odoo/auto/coverage.xml",
