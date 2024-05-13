@@ -102,6 +102,7 @@ jobs:
 
       - name: Post coverage report
         uses: orgoro/coverage@v3.1
+        if: ${{ hashFiles('odoo/auto/coverage.xml') != '' }}
         with:
             coverageFile: odoo/auto/coverage.xml
             token: ${{ secrets.GITHUB_TOKEN }}
