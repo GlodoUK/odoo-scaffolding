@@ -14,6 +14,9 @@ extend-select = [
     {%- endif %}
 ]
 exclude = ["setup/*"]
+ignore = [
+    "UP031" # ignore printf-string-formatting for now
+]
 
 [format]
 exclude = ["setup/*"]

@@ -24,7 +24,6 @@
 {%- endif %}
 
 {%- set excludes = [
-  '(?x)',
   '/static/description/index\.html$',
   '.*\.(diff|patch)$',
   '/static/(src/)?lib/',
@@ -32,6 +31,7 @@
 ] + pre_commit_extra_excludes|default([]) -%}
 
 exclude: |
+  (?x)
   {{ excludes | join("|\n") | indent(2) }}
 default_language_version:
   python: python3
