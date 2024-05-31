@@ -91,25 +91,82 @@ def develop(c):
 
 
 @task(develop)
-def git_aggregate(c):
+def git_aggregate(c, local=False, pre_commit_install=True):
     """Download odoo & addons git code.
 
-    Executes git-aggregator from within the doodba container.
+    Executes git-aggregator from within the doodba container, or locally if specified.
     """
-    with c.cd(str(PROJECT_ROOT)):
-        c.run(
-            "docker compose --compatibility --file setup-devel.yaml run --rm odoo",
-            env=_override_docker_env(),
-            pty=True,
-        )
-    for git_folder in SRC_PATH.glob("*/.git/.."):
-        action = (
-            "install"
-            if (git_folder / ".pre-commit-config.yaml").is_file()
-            else "uninstall"
-        )
-        with c.cd(str(git_folder)):
-            c.run(f"pre-commit {action}")
+
+    if local:
+        if not shutil.which('gitaggregate'):
+            raise FileNotFoundError(
+                "Asked to gitaggregate locally, but could not find gitaggregate on"
+                " path. Perhaps you need to run `pipx install gitaggregator`?"
+            )
+
+        _logger.warn("Running git-aggregate locally is currently experimental!")
+
+        # XXX: Why run locally? So that we can start using git-autoshare!
+        # 
+        # If we have been asked to run gitaggregate locally, we need to massage the ssh
+        # config file a bit by replacing the ~/.ssh path with the path to where it is in
+        # the project, in order to maintain compatibility.
+        #
+        # We do this through a temporary file, which is automatically cleaned up
+        # afterwards.
+        #
+        # If we want to remove gitaggregate from running inside the container, then we
+        # can look at removing this workaround entirely. If this was the case, what do 
+        # we want to do with the keys? Drop per-project keys entirely? 
+        # Allow the developer to use their own keys? What about external contributors?
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+        ) as tmp_ssh_config:
+            ssh_path = PROJECT_ROOT / "odoo" / "custom" / "ssh"
+
+            with open(ssh_path / "config") as fd:
+                config = fd.read().replace(
+                    "IdentityFile ~/.ssh",
+                    f"IdentityFile {str(ssh_path)}"
+                )
+                tmp_ssh_config.write(config)
+                tmp_ssh_config.flush()
+
+            extra_env = {
+                # Tell git to use our custom ssh config file, which we've massaged
+                "GIT_SSH_COMMAND": f"ssh -F {tmp_ssh_config.name}",
+                # Some defaults that are normally provided through setup-devel.yaml,
+                # which we are now by-passing
+                "DEPTH_DEFAULT": os.environ.get("DEPTH_DEFAULT", "100"),
+                "DEPTH_MERGE": os.environ.get("DEPTH_DEFAULT", "200"),
+                "ODOO_VERSION": f"{ODOO_VERSION}",
+            }
+
+            concurrent_jobs = len(os.sched_getaffinity(0))
+
+            with c.cd(SRC_PATH):
+                c.run(
+                    f"gitaggregate -e -c repos.yaml -j {concurrent_jobs}",
+                    env=extra_env,
+                    pty=True,
+                )
+    else:
+        with c.cd(str(PROJECT_ROOT)):
+            c.run(
+                "docker compose --compatibility --file setup-devel.yaml run --rm odoo",
+                env=_override_docker_env(),
+                pty=True,
+            )
+
+    if pre_commit_install:
+        for git_folder in SRC_PATH.glob("*/.git/.."):
+            action = (
+                "install"
+                if (git_folder / ".pre-commit-config.yaml").is_file()
+                else "uninstall"
+            )
+            with c.cd(str(git_folder)):
+                c.run(f"pre-commit {action}")
 
 
 @task(develop)
