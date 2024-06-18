@@ -1,30 +1,25 @@
 {%- import "_macros.jinja" as macros -%}
-{% set whitelisted_hosts = [
-  "fonts.googleapis.com",
-  "fonts.gstatic.com",
-  "www.googleapis.com",
-  "www.gravatar.com",
-] -%}
-{% if odoo_version <= 15 -%}
-{% set whitelisted_hosts = "cdnjs.cloudflare.com" + whitelisted_hosts -%}
-{% endif -%}
 
 services:
-  odoo_proxy:
-    image: ghcr.io/tecnativa/docker-whitelist:latest
+  # ha_proxy replaces odoo_proxy and the various whitelist_proxy and combines them
+  # When you hit it on
+  ha_proxy:
+    image: haproxy:lts-alpine
+    restart: unless-stopped
     stop_grace_period: 0s
-    depends_on:
-      - odoo
-    networks: &public
+    networks:
       default:
+        aliases:
+          {%- for whitelisted_host in macros.whitelisted_hosts(odoo_version).split(",") %}
+          - {{ whitelisted_host|tojson }}
+          {%- endfor %}
       public:
     ports:
       - "{{ macros.version_major(odoo_version) }}899:6899"
       - "{{ macros.version_major(odoo_version) }}069:8069"
       - "{{ macros.version_major(odoo_version) }}072:8072"
-    environment:
-      PORT: "6899 8069 8072"
-      TARGET: odoo
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
 
   odoo:
     {%- if odoo_oci_image %}
@@ -69,10 +64,8 @@ services:
       - ./odoo/auto:/opt/odoo/auto:rw,z
     depends_on:
       - db
-      {% for host in whitelisted_hosts -%}
-      - proxy_{{ host|replace(".", "_") }}
-      {% endfor -%}
       - smtp
+      - ha_proxy
     command:
       - odoo
       - --limit-memory-soft=0
@@ -104,7 +97,9 @@ services:
       #   - https://www.postgresql.org/docs/16/indexes-types.html#INDEXES-TYPES-BTREE
       POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
       POSTGRES_PASSWORD: odoopassword
-    networks: *public
+    networks: &public
+      default:
+      public:
     ports:
       - "{{ macros.version_major(odoo_version) }}432:5432"
     volumes:
@@ -117,20 +112,6 @@ services:
     ports:
       - "{{ macros.version_major(odoo_version) }}025:8025"
 
-  # Whitelist outgoing traffic for tests, reports, etc.
-{%- for host in whitelisted_hosts %}
-  proxy_{{ host|replace(".", "_") }}:
-    image: ghcr.io/tecnativa/docker-whitelist:latest
-    stop_grace_period: 0s
-    networks:
-      default:
-        aliases:
-          - {{ host }}
-      public:
-    environment:
-      TARGET: {{ host }}
-      PRE_RESOLVE: 1
-{% endfor %}
 networks:
   default:
     internal: true
