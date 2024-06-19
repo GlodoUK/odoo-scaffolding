@@ -7,3 +7,17 @@
 {%- macro version_minor(odoo_version) %}
     {{- "%.1f"|format(odoo_version) }}
 {%- endmacro %}
+
+{# Odoo whitelisted hosts based on odoo_version #}
+{%- macro whitelisted_hosts(odoo_version) %}
+    {%- set whitelisted_hosts = [
+      "fonts.googleapis.com",
+      "fonts.gstatic.com",
+      "www.googleapis.com",
+      "www.gravatar.com",
+    ] -%}
+    {% if odoo_version <= 15 -%}
+    {% set whitelisted_hosts = ["cdnjs.cloudflare.com"] + whitelisted_hosts -%}
+    {% endif -%}
+    {{- whitelisted_hosts | join(",") }}
+{%- endmacro %}

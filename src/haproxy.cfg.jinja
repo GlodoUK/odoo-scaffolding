@@ -1,0 +1,61 @@
+{%- import "_macros.jinja" as macros -%}
+defaults
+  mode tcp
+  timeout client 10s
+  timeout connect 5s
+  timeout server 10s
+  timeout http-request 10s
+
+frontend odoo_web
+  bind 0.0.0.0:8069
+  default_backend odoo_web
+
+frontend odoo_longpolling
+  bind 0.0.0.0:8072
+  default_backend odoo_longpolling
+
+frontend odoo_pudb
+  bind 0.0.0.0:6899
+  default_backend odoo_pudb
+
+backend odoo_web
+  server server1 odoo:8069
+
+backend odoo_longpolling
+  server server1 odoo:8072
+
+backend odoo_pudb
+  server server1 odoo:6899
+
+resolvers the_internet
+  nameserver google 8.8.8.8:53
+  hold other           30s
+  hold refused         30s
+  hold nx              30s
+  hold timeout         30s
+  hold valid           1800s
+  hold obsolete        30s
+
+### Whitelisting
+
+frontend whitelist
+  bind *:443
+  option tcplog
+  mode tcp
+
+  tcp-request inspect-delay 5s
+  tcp-request content accept if { req_ssl_hello_type 1 }
+
+  {%- for whitelisted_host in macros.whitelisted_hosts(odoo_version).split(",") %}
+  acl is_{{ whitelisted_host | replace(".", "_") }} req_ssl_sni -i {{ whitelisted_host }}
+  {%- endfor %}
+
+  {%- for whitelisted_host in macros.whitelisted_hosts(odoo_version).split(",") %}
+  use_backend backend_{{ whitelisted_host | replace(".", "_") }} if is_{{ whitelisted_host | replace(".", "_") }}
+  {%- endfor %}
+
+{%- for whitelisted_host in  macros.whitelisted_hosts(odoo_version).split(",") %}
+backend backend_{{ whitelisted_host | replace(".", "_") }}
+    mode tcp
+    server server1 {{ whitelisted_host }} resolvers the_internet resolve-prefer ipv4
+{%- endfor %}
