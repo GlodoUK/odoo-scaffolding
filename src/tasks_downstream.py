@@ -4,6 +4,7 @@ This file is to be executed with https://www.pyinvoke.org/ in Python 3.6+.
 Contains common helpers to develop using this project.
 """
 import os
+import shutil
 import tempfile
 import time
 from logging import getLogger
