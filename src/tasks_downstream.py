@@ -37,16 +37,8 @@ def _override_docker_env(database=False):
     return extra_env
 
 
-def _override_docker_command(service, command, file, orig_file=None):
-    # Read config from main file
-    if orig_file:
-        with open(orig_file) as fd:
-            orig_docker_config = yaml.safe_load(fd.read())
-            docker_compose_file_version = orig_docker_config.get("version")
-    else:
-        docker_compose_file_version = "2.4"
+def _override_docker_command(service, command, file):    
     docker_config = {
-        "version": docker_compose_file_version,
         "services": {service: {"command": command}},
     }
     docker_config_yaml = yaml.dump(docker_config)
@@ -63,7 +55,7 @@ def _remove_auto_reload(file, orig_file):
         if flag.startswith("--dev"):
             flag = flag.replace("reload,", "")
         new_odoo_command.append(flag)
-    _override_docker_command("odoo", new_odoo_command, file, orig_file=orig_file)
+    _override_docker_command("odoo", new_odoo_command, file)
 
 
 def _get_cwd_addon(file):
@@ -308,7 +300,6 @@ def _test_in_debug_mode(c, odoo_command, database):
             "odoo",
             odoo_command,
             file=tmp_docker_compose_file,
-            orig_file=Path(str(PROJECT_ROOT), "docker-compose.yml"),
         )
         with c.cd(str(PROJECT_ROOT)):
             c.run(
