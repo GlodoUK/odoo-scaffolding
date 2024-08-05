@@ -1,10 +1,10 @@
 {%- import "_macros.jinja" as macros -%}
 defaults
   mode tcp
-  timeout client 10s
-  timeout connect 5s
-  timeout server 10s
-  timeout http-request 10s
+  timeout client 0s
+  timeout connect 10s
+  timeout server 0s
+  timeout http-request 0s
 
 frontend odoo_web
   bind 0.0.0.0:8069
