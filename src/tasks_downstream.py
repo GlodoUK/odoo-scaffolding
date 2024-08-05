@@ -37,7 +37,7 @@ def _override_docker_env(database=False):
     return extra_env
 
 
-def _override_docker_command(service, command, file):    
+def _override_docker_command(service, command, file):
     docker_config = {
         "services": {service: {"command": command}},
     }
@@ -91,7 +91,7 @@ def git_aggregate(c, local=False, pre_commit_install=True):
     """
 
     if local:
-        if not shutil.which('gitaggregate'):
+        if not shutil.which("gitaggregate"):
             raise FileNotFoundError(
                 "Asked to gitaggregate locally, but could not find gitaggregate on"
                 " path. Perhaps you need to run `pipx install gitaggregator`?"
@@ -100,7 +100,7 @@ def git_aggregate(c, local=False, pre_commit_install=True):
         _logger.warn("Running git-aggregate locally is currently experimental!")
 
         # XXX: Why run locally? So that we can start using git-autoshare!
-        # 
+        #
         # If we have been asked to run gitaggregate locally, we need to massage the ssh
         # config file a bit by replacing the ~/.ssh path with the path to where it is in
         # the project, in order to maintain compatibility.
@@ -109,8 +109,8 @@ def git_aggregate(c, local=False, pre_commit_install=True):
         # afterwards.
         #
         # If we want to remove gitaggregate from running inside the container, then we
-        # can look at removing this workaround entirely. If this was the case, what do 
-        # we want to do with the keys? Drop per-project keys entirely? 
+        # can look at removing this workaround entirely. If this was the case, what do
+        # we want to do with the keys? Drop per-project keys entirely?
         # Allow the developer to use their own keys? What about external contributors?
         with tempfile.NamedTemporaryFile(
             mode="w",
@@ -119,8 +119,7 @@ def git_aggregate(c, local=False, pre_commit_install=True):
 
             with open(ssh_path / "config") as fd:
                 config = fd.read().replace(
-                    "IdentityFile ~/.ssh",
-                    f"IdentityFile {str(ssh_path)}"
+                    "IdentityFile ~/.ssh", f"IdentityFile {str(ssh_path)}"
                 )
                 tmp_ssh_config.write(config)
                 tmp_ssh_config.flush()
@@ -845,5 +844,5 @@ def after_copier_update(c):
     # Ensure coverage is present in the pip.txt file
     pip = Path(PROJECT_ROOT, "odoo", "custom", "dependencies", "pip.txt")
     with open(pip, "a+") as f:
-        if not any("coverage" == x.rstrip() for x in f):
+        if not any("coverage" == x.strip() for x in f):
             f.write("coverage" + "\n")
