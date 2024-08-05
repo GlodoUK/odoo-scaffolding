@@ -153,6 +153,13 @@ postgres_password:
   help: >-
     What will be your postgres user password?
 
+wdb:
+  type: bool
+  default: false
+  help: >-
+    Enable wdb for this project?
+    This is deprecated, please use the built in debugpy where possible.
+
 github_actions:
   type: bool
   default: true

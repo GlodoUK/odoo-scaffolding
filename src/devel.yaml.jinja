@@ -58,6 +58,9 @@ services:
       PROXY_MODE: "{% if odoo_proxy %}true{% else %}false{% endif %}"
       LIST_DB: "true"
       ADMIN_PASSWORD: {{ odoo_admin_password }}
+      {%- if wdb %}
+      WDB_WEB_PORT: "{{ macros.version_major(odoo_version) }}984"
+      {%- endif %}
     tty: true
     volumes:
       - filestore:/var/lib/odoo:z
@@ -67,6 +70,9 @@ services:
       - db
       - smtp
       - ha_proxy
+      {%- if wdb %}
+      - wdb
+      {%- endif %}
     command:
       - odoo
       - --limit-memory-soft=0
@@ -114,6 +120,16 @@ services:
     networks: *public
     ports:
       - "{{ macros.version_major(odoo_version) }}025:8025"
+
+  {% if wdb -%}
+  wdb:
+    image: kozea/wdb
+    networks: *public
+    ports:
+      - "{{ macros.version_major(odoo_version) }}984:1984"
+    # HACK https://github.com/Kozea/wdb/issues/136
+    init: true
+  {%- endif %}
 
 networks:
   default:
