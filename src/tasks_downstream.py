@@ -764,21 +764,53 @@ def down(c, purge=False):
         c.run(cmd, pty=True)
 
 
-@task()
-def kube(c, command, namespace="default"):
+@task(
+    help={
+        "command": "Command to run in the container. "
+        "Options: ['shell', 'logs', 'bash', 'upgradelog', 'pgactivity']",
+    }
+)
+def kube(c, command, namespace="none"):
     """Run a kubectl command in the provided namespace."""
+
+    yaml_exists = os.path.exists(PROJECT_ROOT / "project.yaml")
+
+    # Fetch the namespace from a project.yaml file
+    if namespace == "none":
+        if yaml_exists:
+            namespace = yaml.safe_load((PROJECT_ROOT / "project.yaml").read_text())[
+                "namespace"
+            ]
+        else:
+            _logger.error(
+                "Namespace not provided or found in project.yaml file. "
+                "Please provide a namespace.\n"
+                "Use: invoke kube {command} -n MyNamespace"
+            )
+            return False
+
+    # If the yaml file does not exist, create one with the namespace provided
+    if not yaml_exists:
+        namespace = namespace.strip()
+        with open(PROJECT_ROOT / "project.yaml", "w") as f:
+            f.write(f"namespace: {namespace}")
+
     if command == "shell":
-        cmd = "kubectl exec deployment/odoo-web -it -n {namespace} -- odoo shell --no-http"
+        cmd = f"kubectl exec deployment/odoo-web -it -n {namespace} -- odoo shell --no-http"
     elif command == "logs":
-        cmd = "kubectl logs -f deployment/odoo-web -n {namespace} --all-containers"
+        cmd = f"kubectl logs -f deployment/odoo-web -n {namespace} --all-containers"
     elif command == "bash":
-        cmd = "kubectl exec deployment/odoo-web -it -n {namespace} -- bash"
+        cmd = f"kubectl exec deployment/odoo-web -it -n {namespace} -- bash"
     elif command == "upgradelog":
-        cmd = "kubectl logs -f job/odoo-upgrade -n {namespace}"
+        cmd = f"kubectl logs -f job/odoo-upgrade -n {namespace}"
     elif command == "pgactivity":
-        cmd = "kubectl exec deployment/odoo-web -it -n {namespace} -- pg_activity"
+        cmd = f"kubectl exec deployment/odoo-web -it -n {namespace} -- pg_activity"
     else:
-        raise exceptions.PlatformError(f"Command {command} not found.")
+        _logger.error(
+            f"Command {command} not found.\n"
+            "Options: ['shell', 'logs', 'bash', 'upgradelog', 'pgactivity']"
+        )
+        return
     c.run(cmd, pty=True)
 
 
