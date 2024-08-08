@@ -775,15 +775,15 @@ def kube(c, command, namespace="none"):
 
     yaml_exists = os.path.exists(PROJECT_ROOT / ".glo.yaml")
 
-    # Fetch the namespace from a project.yaml file
+    # Fetch the namespace from a .glo.yaml file
     if namespace == "none":
         if yaml_exists:
-            namespace = yaml.safe_load((PROJECT_ROOT / "project.yaml").read_text())[
+            namespace = yaml.safe_load((PROJECT_ROOT / ".glo.yaml").read_text())[
                 "namespace"
             ]
         else:
             _logger.error(
-                "Namespace not provided or found in project.yaml file. "
+                "Namespace not provided or found in .glo.yaml file. "
                 "Please provide a namespace.\n"
                 "Use: invoke kube {command} -n MyNamespace"
             )
