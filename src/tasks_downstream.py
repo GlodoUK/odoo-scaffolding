@@ -765,6 +765,24 @@ def down(c, purge=False):
 
 
 @task()
+def kube(c, command, namespace="default"):
+    """Run a kubectl command in the provided namespace."""
+    if command == "shell":
+        cmd = "kubectl exec deployment/odoo-web -it -n {namespace} -- odoo shell --no-http"
+    elif command == "logs":
+        cmd = "kubectl logs -f deployment/odoo-web -n {namespace} --all-containers"
+    elif command == "bash":
+        cmd = "kubectl exec deployment/odoo-web -it -n {namespace} -- bash"
+    elif command == "upgradelog":
+        cmd = "kubectl logs -f job/odoo-upgrade -n {namespace}"
+    elif command == "pgactivity":
+        cmd = "kubectl exec deployment/odoo-web -it -n {namespace} -- pg_activity"
+    else:
+        raise exceptions.PlatformError(f"Command {command} not found.")
+    c.run(cmd, pty=True)
+
+
+@task()
 def preparedb(c, database=False):
     """
     Run the `preparedb` script inside the container which will set the following
