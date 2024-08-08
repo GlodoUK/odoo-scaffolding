@@ -773,7 +773,7 @@ def down(c, purge=False):
 def kube(c, command, namespace="none"):
     """Run a kubectl command in the provided namespace."""
 
-    yaml_exists = os.path.exists(PROJECT_ROOT / "project.yaml")
+    yaml_exists = os.path.exists(PROJECT_ROOT / ".glo.yaml")
 
     # Fetch the namespace from a project.yaml file
     if namespace == "none":
