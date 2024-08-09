@@ -792,7 +792,7 @@ def kube(c, command, namespace="none"):
     # If the yaml file does not exist, create one with the namespace provided
     if not yaml_exists:
         namespace = namespace.strip()
-        with open(PROJECT_ROOT / "project.yaml", "w") as f:
+        with open(PROJECT_ROOT / ".glo.yaml", "w") as f:
             f.write(f"namespace: {namespace}")
 
     if command == "shell":
