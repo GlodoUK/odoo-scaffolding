@@ -767,20 +767,45 @@ def down(c, purge=False):
 @task(
     help={
         "command": "Command to run in the container. "
-        "Options: ['shell', 'logs', 'bash', 'upgradelog', 'pgactivity']",
+        "Options: ['shell', 'logs', 'bash', 'upgradelog', 'pgactivity', 'removens']",
     }
 )
 def kube(c, command, namespace="none"):
     """Run a kubectl command in the provided namespace."""
+    namespace = namespace.strip()
+    command = command.strip().lower()
 
     yaml_exists = os.path.exists(PROJECT_ROOT / ".glo.yaml")
+    if not yaml_exists:
+        # Create empty yaml file
+        with open(PROJECT_ROOT / ".glo.yaml", "w") as f:
+            f.write("namespaces: []\n")
+
+    namespaces = yaml.safe_load((PROJECT_ROOT / ".glo.yaml").read_text()).get(
+        "namespaces", []
+    )
 
     # Fetch the namespace from a .glo.yaml file
     if namespace == "none":
-        if yaml_exists:
-            namespace = yaml.safe_load((PROJECT_ROOT / ".glo.yaml").read_text())[
-                "namespace"
-            ]
+        if len(namespaces) == 1:
+            namespace = namespaces[0]
+        elif len(namespaces) > 1:
+            _logger.warning(
+                "Select a namespace: (use -n {MyNamespace} to add a new one)"
+            )
+            counter = 0
+            for namespace in namespaces:
+                _logger.warning(f" [{counter}] {namespace}")
+                counter += 1
+            response = input("Default [0]: ")
+            if not response:
+                namespace = namespaces[0]
+            else:
+                try:
+                    namespace = namespaces[int(response)]
+                except IndexError:
+                    _logger.error("Namespace not found. Please try again.")
+                    return False
         else:
             _logger.error(
                 "Namespace not provided or found in .glo.yaml file. "
@@ -788,15 +813,20 @@ def kube(c, command, namespace="none"):
                 "Use: invoke kube {command} -n MyNamespace"
             )
             return False
-
-    # If the yaml file does not exist, create one with the namespace provided
-    if not yaml_exists:
-        namespace = namespace.strip()
-        with open(PROJECT_ROOT / ".glo.yaml", "w") as f:
-            f.write(f"namespace: {namespace}")
+    else:
+        if namespace not in namespaces:
+            # Add new namespace to the .glo.yaml file
+            namespaces.append(namespace)
+            yaml.safe_dump(
+                {"namespaces": namespaces},
+                (PROJECT_ROOT / ".glo.yaml").open("w"),
+            )
 
     if command == "shell":
-        cmd = f"kubectl exec deployment/odoo-web -it -n {namespace} -- odoo shell --no-http"
+        cmd = (
+            f"kubectl exec deployment/odoo-web -it -n {namespace}"
+            " -- odoo shell --no-http"
+        )
     elif command == "logs":
         cmd = f"kubectl logs -f deployment/odoo-web -n {namespace} --all-containers"
     elif command == "bash":
@@ -805,6 +835,17 @@ def kube(c, command, namespace="none"):
         cmd = f"kubectl logs -f job/odoo-upgrade -n {namespace}"
     elif command == "pgactivity":
         cmd = f"kubectl exec deployment/odoo-web -it -n {namespace} -- pg_activity"
+    elif command == "removens":
+        if namespace in namespaces:
+            namespaces.remove(namespace)
+            yaml.safe_dump(
+                {"namespaces": namespaces},
+                (PROJECT_ROOT / ".glo.yaml").open("w"),
+            )
+            _logger.warning(f"Namespace {namespace} removed from .glo.yaml")
+        else:
+            _logger.error(f"Namespace {namespace} not found in .glo.yaml")
+        return
     else:
         _logger.error(
             f"Command {command} not found.\n"
