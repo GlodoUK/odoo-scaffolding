@@ -168,6 +168,7 @@ install_pipx() {
   ~/.local/bin/pipx install copier
   ~/.local/bin/pipx install invoke
   ~/.local/bin/pipx install pre-commit
+  ~/.local/bin/pipx install inquirer
   
   grep -qxF 'export PATH=$PATH:~/.local/bin/' ~/.bashrc || echo 'export PATH=$PATH:~/.local/bin/' >> ~/.bashrc
 
