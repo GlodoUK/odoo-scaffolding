@@ -778,7 +778,7 @@ def check_make_yaml(filename):
         "Options: ['shell', 'logs', 'bash', 'upgradelog', 'pgactivity', 'removens']",
     }
 )
-def kube(c, command, namespace="none", db="none"):
+def kube(c, command, namespace=None):
     """Run a kubectl command in the provided namespace."""
     namespace = namespace.strip()
     command = command.strip().lower()
@@ -790,7 +790,7 @@ def kube(c, command, namespace="none", db="none"):
     )
 
     # Fetch the namespace from a .glo.yaml file
-    if namespace == "none":
+    if namespace is None:
         if len(namespaces) == 1:
             namespace = namespaces[0]
         elif len(namespaces) > 1:
@@ -831,8 +831,6 @@ def kube(c, command, namespace="none", db="none"):
             f"kubectl exec deployment/odoo-web -it -n {namespace}"
             " -- odoo shell --no-http"
         )
-        if db != "none":
-            cmd += f" -d {db}"
     elif command == "logs":
         cmd = f"kubectl logs -f deployment/odoo-web -n {namespace} --all-containers"
     elif command == "bash":
