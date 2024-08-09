@@ -770,18 +770,14 @@ def down(c, purge=False):
         "Options: ['shell', 'logs', 'bash', 'upgradelog', 'pgactivity', 'removens']",
     }
 )
-def kube(c, command, namespace="none"):
+def kube(c, command, namespace="none", db="none"):
     """Run a kubectl command in the provided namespace."""
     namespace = namespace.strip()
     command = command.strip().lower()
+    filename = ".glo.yaml"
+    check_make_yaml(filename)
 
-    yaml_exists = os.path.exists(PROJECT_ROOT / ".glo.yaml")
-    if not yaml_exists:
-        # Create empty yaml file
-        with open(PROJECT_ROOT / ".glo.yaml", "w") as f:
-            f.write("namespaces: []\n")
-
-    namespaces = yaml.safe_load((PROJECT_ROOT / ".glo.yaml").read_text()).get(
+    namespaces = yaml.safe_load((PROJECT_ROOT / filename).read_text()).get(
         "namespaces", []
     )
 
@@ -819,7 +815,7 @@ def kube(c, command, namespace="none"):
             namespaces.append(namespace)
             yaml.safe_dump(
                 {"namespaces": namespaces},
-                (PROJECT_ROOT / ".glo.yaml").open("w"),
+                (PROJECT_ROOT / filename).open("w"),
             )
 
     if command == "shell":
@@ -827,6 +823,8 @@ def kube(c, command, namespace="none"):
             f"kubectl exec deployment/odoo-web -it -n {namespace}"
             " -- odoo shell --no-http"
         )
+        if db != "none":
+            cmd += f" -d {db}"
     elif command == "logs":
         cmd = f"kubectl logs -f deployment/odoo-web -n {namespace} --all-containers"
     elif command == "bash":
@@ -840,11 +838,11 @@ def kube(c, command, namespace="none"):
             namespaces.remove(namespace)
             yaml.safe_dump(
                 {"namespaces": namespaces},
-                (PROJECT_ROOT / ".glo.yaml").open("w"),
+                (PROJECT_ROOT / filename).open("w"),
             )
-            _logger.warning(f"Namespace {namespace} removed from .glo.yaml")
+            _logger.warning(f"Namespace {namespace} removed from {filename}")
         else:
-            _logger.error(f"Namespace {namespace} not found in .glo.yaml")
+            _logger.error(f"Namespace {namespace} not found in {filename}")
         return
     else:
         _logger.error(
