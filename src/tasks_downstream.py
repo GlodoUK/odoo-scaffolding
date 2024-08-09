@@ -764,6 +764,14 @@ def down(c, purge=False):
         c.run(cmd, pty=True)
 
 
+def check_make_yaml(filename):
+    yaml_exists = os.path.exists(PROJECT_ROOT / filename)
+    if not yaml_exists:
+        # Create empty yaml file
+        with open(PROJECT_ROOT / filename, "w") as f:
+            f.write("namespaces: []\n")
+
+
 @task(
     help={
         "command": "Command to run in the container. "
