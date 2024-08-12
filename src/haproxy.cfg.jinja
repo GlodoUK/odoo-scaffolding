@@ -5,6 +5,7 @@ defaults
   timeout connect 10s
   timeout server 0s
   timeout http-request 0s
+  default-server init-addr last,libc,none
 
 frontend odoo_web
   bind 0.0.0.0:8069
@@ -19,13 +20,16 @@ frontend odoo_pudb
   default_backend odoo_pudb
 
 backend odoo_web
-  server server1 odoo:8069
+  server server1 odoo:8069 resolvers docker check
 
 backend odoo_longpolling
-  server server1 odoo:8072
+  server server1 odoo:8072 resolvers docker check
 
 backend odoo_pudb
-  server server1 odoo:6899
+  server server1 odoo:6899 resolvers docker check
+
+resolvers docker
+  parse-resolv-conf
 
 resolvers the_internet
   nameserver google 8.8.8.8:53
