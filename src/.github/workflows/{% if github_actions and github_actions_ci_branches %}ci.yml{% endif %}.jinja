@@ -91,18 +91,21 @@ jobs:
         run: |
           invoke git-aggregate
 
-      - name: Run tests
+      - name: Run tests with coverage
+        id: tests
         run: |
           invoke install -m l10n_generic_coa
           invoke test-changed -b "origin/${{ github.base_ref }}" --coverage
 
       - name: Create coverage XML report
+        id: coverage_report
+        continue-on-error: true
         run: |
           invoke test-coverage-report --format=xml
 
       - name: Post coverage report
+        if: ${{ steps.coverage_report.outcome == 'success' }}
         uses: orgoro/coverage@v3.1
-        if: ${{ hashFiles('odoo/auto/coverage.xml') != '' }}
         with:
             coverageFile: odoo/auto/coverage.xml
             token: ${{ secrets.GITHUB_TOKEN }}
