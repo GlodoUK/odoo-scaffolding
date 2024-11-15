@@ -22,7 +22,7 @@ fatal() {
 }
 
 verify_system() {
-  if [ `lsb_release -si` != "Ubuntu" ]; then 
+  if [ `lsb_release -si` != "Ubuntu" ]; then
     fatal 'Expected Ubuntu'
   fi
 
@@ -59,8 +59,8 @@ install_docker() {
 
   # cleanup any incompatible stuff
   for pkg in docker.io docker-doc docker-compose podman-docker containerd runc
-  do 
-    if dpkg --get-selections | grep -q "^$pkg[[:space:]]*install$" >/dev/null; then 
+  do
+    if dpkg --get-selections | grep -q "^$pkg[[:space:]]*install$" >/dev/null; then
       sudo apt-get remove -y $pkg
     fi
   done
@@ -92,7 +92,7 @@ install_kubectl() {
   else
     info "Installing kubectl"
     sudo curl -fsSLo /etc/apt/keyrings/kubernetes.gpg https://dl.k8s.io/apt/doc/apt-key.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/kubernetes.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes.gpg] https://pkgs.k8s.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
     sudo apt-get update
     sudo apt-get install -y kubectl
   fi
@@ -168,7 +168,7 @@ install_pipx() {
   ~/.local/bin/pipx install copier
   ~/.local/bin/pipx install invoke
   ~/.local/bin/pipx install pre-commit
-  
+
   grep -qxF 'export PATH=$PATH:~/.local/bin/' ~/.bashrc || echo 'export PATH=$PATH:~/.local/bin/' >> ~/.bashrc
 
   grep -qxF 'invoke --print-completion-script=bash' ~/.bashrc || echo '
@@ -214,7 +214,7 @@ EOF
 }
 
 ensure_not_root() {
-  if [ "$EUID" -eq 0 ]; then 
+  if [ "$EUID" -eq 0 ]; then
     fatal "Please do not run this as root!"
   fi
 }
