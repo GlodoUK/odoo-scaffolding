@@ -92,7 +92,7 @@ install_kubectl() {
   else
     info "Installing kubectl"
     sudo curl -fsSLo /etc/apt/keyrings/kubernetes.gpg https://dl.k8s.io/apt/doc/apt-key.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes.gpg] https://pkgs.k8s.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
     sudo apt-get update
     sudo apt-get install -y kubectl
   fi
