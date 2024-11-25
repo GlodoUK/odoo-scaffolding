@@ -32,6 +32,7 @@ jobs:
     outputs:
       {% raw %}build_needed: ${{ steps.set-decision.outputs.build_needed }}{% endraw %}
 
+    {%- raw %}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -70,6 +71,7 @@ jobs:
             echo "No changes detected. Skipping build."
             echo "build_needed=false" >> $GITHUB_OUTPUT
           fi
+    {%- endraw %}
           
   {%- endif %}
   build:
