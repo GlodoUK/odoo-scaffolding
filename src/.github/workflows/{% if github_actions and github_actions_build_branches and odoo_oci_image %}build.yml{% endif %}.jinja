@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      build_needed: ${{ steps.set-decision.outputs.build_needed }}
+      {% raw %}build_needed: ${{ steps.set-decision.outputs.build_needed }}{% endraw %}
 
     steps:
       - name: Checkout code
