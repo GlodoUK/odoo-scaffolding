@@ -21,11 +21,6 @@ on:
     - cron: {{ github_actions_build_on_schedule_cron | tojson }}
   {%- endif %}
 
-{%- if github_actions_build_on_schedule and github_actions_build_on_schedule_cron %}
-permissions:
-  packages: read
-{%- endif %}
-
 env:
   ODOO_VERSION: "{{ macros.version_minor(odoo_version) }}"
 
