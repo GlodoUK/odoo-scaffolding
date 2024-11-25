@@ -48,6 +48,7 @@ jobs:
           ONE_DAY_AGO=$(date -u -d '-24 hours' +"%Y-%m-%dT%H:%M:%SZ")
           echo "NOW=$NOW" >> $GITHUB_ENV
           echo "ONE_DAY_AGO=$ONE_DAY_AGO" >> $GITHUB_ENV
+
       - name: Determine Changed Files
         id: changed-files
         uses: tj-actions/changed-files@v45
