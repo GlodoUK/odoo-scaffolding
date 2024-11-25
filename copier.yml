@@ -193,7 +193,7 @@ github_actions_build_on_push:
 github_actions_build_on_schedule:
   type: bool
   help: >-
-    Build and push docker images on a schedule?
+    Build and push docker images on a schedule? (Note: only works on main branch)
   default: false
   when: *github_actions
 
