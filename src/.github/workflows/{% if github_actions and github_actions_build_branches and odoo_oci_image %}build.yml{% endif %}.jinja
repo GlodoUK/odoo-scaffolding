@@ -25,9 +25,59 @@ env:
   ODOO_VERSION: "{{ macros.version_minor(odoo_version) }}"
 
 jobs:
-  build:
+  {%- if github_actions_build_on_schedule and github_actions_build_on_schedule_cron %}
+  check:
     runs-on: ubuntu-latest
 
+    outputs:
+      build_needed: ${{ steps.set-decision.outputs.build_needed }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set Timestamps
+        id: set-timestamps
+        run: |
+          NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          ONE_DAY_AGO=$(date -u -d '-24 hours' +"%Y-%m-%dT%H:%M:%SZ")
+          echo "NOW=$NOW" >> $GITHUB_ENV
+          echo "ONE_DAY_AGO=$ONE_DAY_AGO" >> $GITHUB_ENV
+
+      - name: Determine Changed Files
+        id: changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch_depth: "100"
+          since: ${{ env.ONE_DAY_AGO }}
+          until: ${{ env.NOW }}
+        continue-on-error: true
+
+      - name: Determine if Build is Needed
+        id: set-decision
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Manual trigger detected. Forcing build."
+            echo "build_needed=true" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.changed-files.outcome }}" == "failure" ]; then
+            echo "No new changes detected or only one commit exists. Skipping build."
+            echo "build_needed=false" >> $GITHUB_OUTPUT
+          elif [ "${{ steps.changed-files.outputs.all_changed_files }}" != "" ]; then
+            echo "Changes detected. Build needed."
+            echo "build_needed=true" >> $GITHUB_OUTPUT
+          else
+            echo "No changes detected. Skipping build."
+            echo "build_needed=false" >> $GITHUB_OUTPUT
+          fi
+          
+  {%- endif %}
+  build:
+    runs-on: ubuntu-latest
+    {%- if github_actions_build_on_schedule and github_actions_build_on_schedule_cron %}
+    needs: check
+    if: needs.check.outputs.build_needed == 'true'
+    {%- endif %}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
