@@ -45,6 +45,7 @@ odoo_version:
     - 15.0
     - 16.0
     - 17.0
+    - 18.0
 
 odoo_admin_password:
   secret: false
@@ -109,22 +110,18 @@ odoo_oci_image:
   default: "glodouk/{{ project_name | lower }}"
 
 postgres_version:
-  default: "15"
+  default: "16"
   help: >-
     Which PostgreSQL version do you want to use? This should match production.
   choices:
-    "9.6": "9.6"
-    "10": "10"
-    "11": "11"
-    "12": "12"
-    "13": "13"
     "14": "14"
     "15": "15"
     "16": "16"
+    "17": "17"
 
 postgres_image:
   type: str
-  default: "postgres:{{ postgres_version }}-alpine"
+  default: "ghcr.io/glodouk/cnpg-postgres:{{ postgres_version }}"
   help: >-
     Image to use. When you are unsure, leave this as default.
 

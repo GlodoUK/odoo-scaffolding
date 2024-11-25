@@ -29,3 +29,9 @@
 
 # Project-specific docker configurations
 /.docker/
+
+# Node.
+/node_modules/
+
+# Data.
+/data/

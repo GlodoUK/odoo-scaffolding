@@ -66,6 +66,7 @@ services:
       - filestore:/var/lib/odoo:z
       - ./odoo/custom:/opt/odoo/custom:rw,z
       - ./odoo/auto:/opt/odoo/auto:rw,z
+      - ./data:/data:rw,z
     depends_on:
       - db
       - smtp
