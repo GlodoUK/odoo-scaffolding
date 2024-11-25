@@ -1,0 +1,1 @@
+{%- include "vendor/oca-addons-repo-template/src/{% if odoo_version >= 18 %}eslint.config.cjs{% endif %}" -%}
