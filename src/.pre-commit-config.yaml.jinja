@@ -11,19 +11,19 @@
 {%- if odoo_version <= 15 %}
   {%- set repo_rev.eslint = "v7.8.1" %}
   {%- set repo_rev.nodejs = "14.13.0" %}
-  {%- set repo_rev.prettier = "v2.1.2" %}
+  {%- set repo_rev.prettier = "2.1.2" %}
 {%- elif odoo_version <= 16 %}
   {%- set repo_rev.eslint = "v8.19.0" %}
   {%- set repo_rev.nodejs = "14.18.0" %}
-  {%- set repo_rev.prettier = "v2.7.1" %}
+  {%- set repo_rev.prettier = "2.7.1" %}
 {%- elif odoo_version <= 17 %}
   {%- set repo_rev.eslint = "v8.56.0" %}
   {%- set repo_rev.nodejs = "20.10.0" %}
-  {%- set repo_rev.prettier = "v3.1.0" %}
+  {%- set repo_rev.prettier = "3.1.0" %}
 {%- else %}
-  {%- set repo_rev.eslint = "9.12.0" %}
+  {%- set repo_rev.eslint = "v9.12.0" %}
   {%- set repo_rev.nodejs = "22.9.0" %}
-  {%- set repo_rev.prettier = "v3.3.3" %}
+  {%- set repo_rev.prettier = "3.3.3" %}
 {%- endif %}
 
 {%- set excludes = [
@@ -31,6 +31,7 @@
   '.*\.(diff|patch)$',
   '/static/(src/)?lib/',
   '(LICENSE.*|COPYING.*)',
+  '^eslint.config.cjs|^prettier.config.cjs',
 ] + pre_commit_extra_excludes|default([]) -%}
 
 exclude: |
@@ -76,12 +77,20 @@ repos:
         name: pylint with mandatory checks
         args:
           - --rc-file=.pylintrc-mandatory
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: {{ repo_rev.prettier }}
+  - repo: local
     hooks:
       - id: prettier
-        # https://github.com/prettier/prettier/issues/12143
-        exclude: "}$"
+        name: prettier
+        entry: prettier
+        args:
+          - --write
+          - --list-different
+          - --ignore-unknown
+        types: [text]
+        files: \.(css|htm|html|js|json|jsx|less|md|scss|toml|ts|yaml|yml)$
+        language: node
+        additional_dependencies:
+          - "prettier@{{ repo_rev.prettier }}"
   - repo: https://github.com/GlodoUK/pre-commit-xmllint
     rev: {{ repo_rev.xmllint }}
     hooks:
