@@ -2,28 +2,29 @@
 
 {%- set repo_rev = namespace() %}
 
-{%- set repo_rev.ruff = "v0.6.8" %}
+{%- set repo_rev.ruff = "v0.8.4" %}
 {%- set repo_rev.pre_commit_hooks = "v4.6.0" %}
 {%- set repo_rev.xmllint = "b9281d1" %}
-{%- set repo_rev.oca_pre_commit_hooks = "v0.0.33" %}
-{%- set repo_rev.pylint_odoo = "v9.1.3" %}
+{%- set repo_rev.oca_pre_commit_hooks = "v0.0.35" %}
+{%- set repo_rev.pylint_odoo = "v9.2.0" %}
 
 {%- if odoo_version <= 15 %}
-  {%- set repo_rev.eslint = "v7.8.1" %}
+  {%- set repo_rev.eslint = "7.8.1" %}
   {%- set repo_rev.nodejs = "14.13.0" %}
   {%- set repo_rev.prettier = "2.1.2" %}
 {%- elif odoo_version <= 16 %}
-  {%- set repo_rev.eslint = "v8.19.0" %}
+  {%- set repo_rev.eslint = "8.19.0" %}
   {%- set repo_rev.nodejs = "14.18.0" %}
   {%- set repo_rev.prettier = "2.7.1" %}
 {%- elif odoo_version <= 17 %}
-  {%- set repo_rev.eslint = "v8.56.0" %}
+  {%- set repo_rev.eslint = "8.56.0" %}
   {%- set repo_rev.nodejs = "20.10.0" %}
   {%- set repo_rev.prettier = "3.1.0" %}
 {%- else %}
-  {%- set repo_rev.eslint = "v9.12.0" %}
-  {%- set repo_rev.nodejs = "22.9.0" %}
-  {%- set repo_rev.prettier = "3.3.3" %}
+  {%- set repo_rev.eslint = "9.17.0" %}
+  {%- set repo_rev.eslint_jsdoc = "50.6.1" %}
+  {%- set repo_rev.nodejs = "22.12.0" %}
+  {%- set repo_rev.prettier = "3.4.2" %}
 {%- endif %}
 
 {%- set excludes = [
@@ -119,11 +120,19 @@ repos:
       - id: check-xml
       - id: mixed-line-ending
         args: ["--fix=lf"]
-  - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: {{ repo_rev.eslint }}
+  - repo: local
     hooks:
       - id: eslint
-        verbose: true
+        name: eslint
+        entry: eslint
         args:
           - --color
           - --fix
+        verbose: true
+        types: [javascript]
+        language: node
+        additional_dependencies:
+          - "eslint@{{ repo_rev.eslint }}"
+          {%- if odoo_version >= 18 %}
+          - "eslint-plugin-jsdoc@{{ repo_rev.eslint_jsdoc }}"
+          {%- endif %}
