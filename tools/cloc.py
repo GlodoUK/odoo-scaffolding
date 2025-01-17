@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+
+# 1 Liner: 
+# curl https://raw.githubusercontent.com/GlodoUK/odoo-scaffolding/refs/heads/glodo/tools/cloc.py | python3 - -e MODULE_TO_EXCLUDE
+
 import json
 import urllib.request
 
