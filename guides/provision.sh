@@ -167,12 +167,15 @@ install_pipx() {
   v=$(lsb_release -sr)
   if [ $((${v%.*})) -ge 23 ]; then 
     sudo apt-get install -yq pipx 
+    pipx install copier
+    pipx install invoke
+    pipx install pre-commit
   else
-    python3 -m pip install --user pipx    
+    python3 -m pip install --user pipx  
+    ~/.local/bin/pipx install copier
+    ~/.local/bin/pipx install invoke
+    ~/.local/bin/pipx install pre-commit
   fi
-  ~/.local/bin/pipx install copier
-  ~/.local/bin/pipx install invoke
-  ~/.local/bin/pipx install pre-commit
 
   grep -qxF 'export PATH=$PATH:~/.local/bin/' ~/.bashrc || echo 'export PATH=$PATH:~/.local/bin/' >> ~/.bashrc
 
