@@ -166,7 +166,7 @@ install_pipx() {
   info "Installing pipx, copier, invoke, pre-commit"
   v=$(lsb_release -sr)
   if [ $((${v%.*})) -ge 23 ]; then 
-    sudo apt-get install -yq python-pipx 
+    sudo apt-get install -yq python3-pipx 
   else
     python3 -m pip install --user pipx    
   fi
