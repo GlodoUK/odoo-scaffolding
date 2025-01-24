@@ -164,7 +164,12 @@ install_code_dir() {
 
 install_pipx() {
   info "Installing pipx, copier, invoke, pre-commit"
-  python3 -m pip install --user pipx
+  v=$(lsb_release -sr)
+  if [ $((${v%.*})) -ge 23 ]; then 
+    sudo apt-get install -yq python-pipx 
+  else
+    python3 -m pip install --user pipx    
+  fi
   ~/.local/bin/pipx install copier
   ~/.local/bin/pipx install invoke
   ~/.local/bin/pipx install pre-commit
