@@ -43,7 +43,4 @@
   "restructuredtext.confPath": "",
   "search.followSymlinks": false,
   "xml.format.spaceBeforeEmptyCloseTag": false,
-  "xml.format.preserveAttributeLineBreaks": false,
-  "xml.format.splitAttributes": "preserve",
-  "xml.format.maxLineWidth": 0
 }
