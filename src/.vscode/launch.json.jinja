@@ -1,34 +1,38 @@
 {%- import "_macros.jinja" as macros -%}
 {
   // More info on this file: https://go.microsoft.com/fwlink/?linkid=830387
-  "version": "0.2.0",
+  "version": "0.3.0",
   "configurations": [
     {
       "name": "Debug Odoo",
-      "type": "python",
+      "type": "debugpy",
       "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": {{ macros.version_major(odoo_version) }}899
+      }
       "pathMappings": [
         {
           "localRoot": "${workspaceRoot}/odoo",
           "remoteRoot": "/opt/odoo"
         }
       ],
-      "port": {{ macros.version_major(odoo_version) }}899,
-      "host": "localhost",
       "preLaunchTask": "invoke stopstart"
     },
     {
       "name": "Attach to Odoo Debug",
-      "type": "python",
+      "type": "debugpy",
       "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": {{ macros.version_major(odoo_version) }}899
+      }
       "pathMappings": [
         {
           "localRoot": "${workspaceRoot}/odoo",
           "remoteRoot": "/opt/odoo"
         }
       ],
-      "port": {{ macros.version_major(odoo_version) }}899,
-      "host": "localhost"
     }
   ]
 }
