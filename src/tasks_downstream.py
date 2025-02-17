@@ -468,7 +468,7 @@ def test(
 
 @task(
     help={
-        "format": "Format to generate a coverage report in",
+        "test_format": "Format to generate a coverage report in",
     }
 )
 def test_coverage_report(c, test_format=None):
