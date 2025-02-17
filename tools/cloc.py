@@ -22,6 +22,8 @@ EXCLUDED_MODULE_FILES = [
     "__manifest__.py",
     "__openerp__.py",
     "static/lib/**/*",
+    "migrations/**/*",
+    "upgrades/**/*",
 ]
 
 VALID_EXTENSIONS = ['.py', '.js', '.xml', '.css', '.scss']
