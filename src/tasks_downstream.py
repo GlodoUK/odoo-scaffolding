@@ -468,12 +468,12 @@ def test(
 
 @task(
     help={
-        "format": "Format to generate a coverage report in",
+        "test_format": "Format to generate a coverage report in",
     }
 )
-def test_coverage_report(c, format=None):
-    if format is None:
-        format = "html"
+def test_coverage_report(c, test_format=None):
+    if test_format is None:
+        test_format = "html"
 
     if not (PROJECT_ROOT / "odoo" / "auto" / ".coverage").exists():
         _logger.warning("Coverage input file does not exist, skipping")
@@ -487,7 +487,7 @@ def test_coverage_report(c, format=None):
 
     cmd = [
         "docker compose run --rm odoo coverage",
-        FORMAT_TO_COMMAND.get(format, "report"),
+        FORMAT_TO_COMMAND.get(test_format, "report"),
         "--data-file=/opt/odoo/auto/.coverage",
         "--omit=*/__init__.py,*/__manifest__.py,*/tests/*.py",
     ]

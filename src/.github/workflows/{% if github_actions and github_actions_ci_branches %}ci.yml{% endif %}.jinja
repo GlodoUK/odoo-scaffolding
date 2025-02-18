@@ -101,7 +101,7 @@ jobs:
         id: coverage_report
         continue-on-error: true
         run: |
-          invoke test-coverage-report --format=xml
+          invoke test-coverage-report --test_format=xml
 
       - name: Post coverage report
         if: ${{ steps.coverage_report.outcome == 'success' }}
