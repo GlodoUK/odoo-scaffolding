@@ -2,11 +2,11 @@
 
 {%- set repo_rev = namespace() %}
 
-{%- set repo_rev.ruff = "v0.8.4" %}
+{%- set repo_rev.ruff = "v0.14.0" %}
 {%- set repo_rev.pre_commit_hooks = "v4.6.0" %}
 {%- set repo_rev.xmllint = "b9281d1" %}
-{%- set repo_rev.oca_pre_commit_hooks = "v0.0.35" %}
-{%- set repo_rev.pylint_odoo = "v9.2.0" %}
+{%- set repo_rev.oca_pre_commit_hooks = "v0.1.6" %}
+{%- set repo_rev.pylint_odoo = "v9.3.18" %}
 
 {%- if odoo_version <= 15 %}
   {%- set repo_rev.eslint = "7.8.1" %}
