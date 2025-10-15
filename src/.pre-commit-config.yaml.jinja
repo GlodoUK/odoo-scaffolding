@@ -2,11 +2,11 @@
 
 {%- set repo_rev = namespace() %}
 
-{%- set repo_rev.ruff = "v0.8.4" %}
+{%- set repo_rev.ruff = "v0.14.0" %}
 {%- set repo_rev.pre_commit_hooks = "v4.6.0" %}
 {%- set repo_rev.xmllint = "b9281d1" %}
-{%- set repo_rev.oca_pre_commit_hooks = "v0.0.35" %}
-{%- set repo_rev.pylint_odoo = "v9.2.0" %}
+{%- set repo_rev.oca_pre_commit_hooks = "v0.1.6" %}
+{%- set repo_rev.pylint_odoo = "v9.3.18" %}
 
 {%- if odoo_version <= 15 %}
   {%- set repo_rev.eslint = "7.8.1" %}
@@ -20,11 +20,16 @@
   {%- set repo_rev.eslint = "8.56.0" %}
   {%- set repo_rev.nodejs = "20.10.0" %}
   {%- set repo_rev.prettier = "3.1.0" %}
-{%- else %}
+{%- elif odoo_version <= 18 %}
   {%- set repo_rev.eslint = "9.17.0" %}
-  {%- set repo_rev.eslint_jsdoc = "50.6.1" %}
+  {%- set repo_rev.eslint_jsdoc = "60.3.1" %}
   {%- set repo_rev.nodejs = "22.12.0" %}
-  {%- set repo_rev.prettier = "3.4.2" %}
+  {%- set repo_rev.prettier = "3.6.2" %}
+{%- else %}
+  {%- set repo_rev.eslint = "9.36.0" %}
+  {%- set repo_rev.eslint_jsdoc = "57.0.8" %}
+  {%- set repo_rev.nodejs = "22.20.0" %}
+  {%- set repo_rev.prettier = "3.6.2" %}
 {%- endif %}
 
 {%- set excludes = [
