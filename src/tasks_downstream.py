@@ -780,7 +780,7 @@ def check_make_yaml(filename):
 )
 def kube(c, command, namespace=None):
     """Run a kubectl command in the provided namespace."""
-    namespace = namespace.strip()
+    namespace = namespace.strip() if namespace else None
     command = command.strip().lower()
     filename = ".glo.yaml"
     check_make_yaml(filename)
