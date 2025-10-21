@@ -26,6 +26,7 @@
 /doodba.*.code-workspace
 /src
 *.rej
+.glo.yaml
 
 # Project-specific docker configurations
 /.docker/
