@@ -420,7 +420,10 @@ def test(
         modules = _get_module_list(c, modules, core, extra, private, enterprise)
     odoo_command = ["odoo", "--test-enable", "--stop-after-init", "--workers=0"]
     if mode == "init":
-        odoo_command.append("-i")
+        if ODOO_VERSION >= 19.0:
+            odoo_command.append("--reinit")
+        else:
+            odoo_command.append("-i")
     elif mode == "update":
         odoo_command.append("-u")
     else:
