@@ -7,6 +7,7 @@ import os
 import shutil
 import tempfile
 import time
+from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 
@@ -778,7 +779,7 @@ def check_make_yaml(filename):
 @task(
     help={
         "command": "Command to run in the container. "
-        "Options: ['shell', 'logs', 'bash', 'upgradelog', 'pgactivity', 'removens']",
+        "Options: ['shell', 'logs', 'bash', 'upgradelog', 'pgactivity', 'removens', 'startbackup', 'jobs']",
     }
 )
 def kube(c, command, namespace=None):
@@ -853,10 +854,18 @@ def kube(c, command, namespace=None):
         else:
             _logger.error(f"Namespace {namespace} not found in {filename}")
         return
+    elif command == "startbackup":
+        dt = datetime.now()
+        jobname = f"backup-{dt.year}-{dt.month}-{dt.day}-{dt.hour}-{dt.minute}-{dt.second}"
+        cmd = f"kubectl create job --from=cronjob/kopia-backup {jobname} -n {namespace}"
+        _logger.info(f"Starting Backup Job {jobname} in {namespace}")
+        _logger.info(f"Use `invoke kube jobs -n {namespace}` to check status")
+    elif command == "jobs":
+        cmd = f"kubectl get jobs -n {namespace}"
     else:
         _logger.error(
             f"Command {command} not found.\n"
-            "Options: ['shell', 'logs', 'bash', 'upgradelog', 'pgactivity']"
+            "Options: ['shell', 'logs', 'bash', 'upgradelog', 'pgactivity', 'removens', 'startbackup', 'jobs']"
         )
         return
     c.run(cmd, pty=True)
