@@ -124,7 +124,7 @@ postgres_version:
 
 postgres_image:
   type: str
-  default: "ghcr.io/glodouk/cnpg-postgres:{{ postgres_version }}"
+  default: "postgres:{{ postgres_version }}-alpine"
   help: >-
     Image to use. When you are unsure, leave this as default.
 

@@ -4,7 +4,7 @@ services:
   # ha_proxy replaces odoo_proxy and the various whitelist_proxy and combines them
   # When you hit it on
   ha_proxy:
-    image: haproxy:lts-alpine
+    image: haproxy:3.0.9
     stop_grace_period: 0s
     networks:
       default:
